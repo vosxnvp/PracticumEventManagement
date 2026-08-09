@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PracticumEventManagement.Models;
 using PracticumEventManagement.Services;
+using PracticumEventManagement.Dtos;
 
 namespace PracticumEventManagement.Controllers;
 
@@ -37,8 +38,16 @@ public class EventsController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<Event> Create(Event eventItem)
+    public ActionResult<Event> Create(CreateEventRequest request)
     {
+        var eventItem = new Event
+        {
+            Title = request.Title!,
+            Description = request.Description,
+            StartAt = request.StartAt!.Value,
+            EndAt = request.EndAt!.Value
+        };
+
         var createdEvent = _eventService.Create(eventItem);
 
         return CreatedAtAction(
@@ -48,8 +57,16 @@ public class EventsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public IActionResult Update(Guid id, Event eventItem)
+    public IActionResult Update(Guid id, UpdateEventRequest request)
     {
+        var eventItem = new Event
+        {
+            Title = request.Title!,
+            Description = request.Description,
+            StartAt = request.StartAt!.Value,
+            EndAt = request.EndAt!.Value
+        };
+
         var updated = _eventService.Update(id, eventItem);
 
         if (!updated)
