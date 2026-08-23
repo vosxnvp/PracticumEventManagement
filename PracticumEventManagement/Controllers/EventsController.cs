@@ -29,12 +29,7 @@ public class EventsController : ControllerBase
     {
         var eventItem = _eventService.GetById(id);
 
-        if (eventItem is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(eventItem);
+         return Ok(eventItem);
     }
 
     [HttpPost]
@@ -69,10 +64,6 @@ public class EventsController : ControllerBase
 
         var updated = _eventService.Update(id, eventItem);
 
-        if (!updated)
-        {
-            return NotFound();
-        }
 
         return NoContent();
     }
@@ -82,10 +73,7 @@ public class EventsController : ControllerBase
     {
         var deleted = _eventService.Delete(id);
 
-        if (!deleted)
-        {
-            return NotFound();
-        }
+    
 
         return NoContent();
     }

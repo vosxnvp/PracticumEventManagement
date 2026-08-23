@@ -1,4 +1,5 @@
-﻿using PracticumEventManagement.Models;
+﻿using PracticumEventManagement.Exceptions;
+using PracticumEventManagement.Models;
 
 namespace PracticumEventManagement.Services;
 
@@ -13,11 +14,15 @@ public class EventService : IEventService
 
     public Event? GetById(Guid id)
     {
-        return _events.FirstOrDefault(e => e.Id == id);
+        return _events.FirstOrDefault(e => e.Id == id) ?? throw new NotFoundException($"Event with id {id} was not found.");
     }
 
     public Event Create(Event eventItem)
     {
+        if (eventItem.EndAt <= eventItem.StartAt)
+        {
+            throw new ValidationException("EndAt must be later than StartAt.");
+        }
         eventItem.Id = Guid.NewGuid();
         _events.Add(eventItem);
 
@@ -27,12 +32,10 @@ public class EventService : IEventService
     public bool Update(Guid id, Event eventItem)
     {
         var existingEvent = GetById(id);
-
-        if (existingEvent is null)
+        if (eventItem.EndAt <= eventItem.StartAt)
         {
-            return false;
+            throw new ValidationException("EndAt must be later than StartAt.");
         }
-
         existingEvent.Title = eventItem.Title;
         existingEvent.Description = eventItem.Description;
         existingEvent.StartAt = eventItem.StartAt;
