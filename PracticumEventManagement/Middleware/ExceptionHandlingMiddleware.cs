@@ -61,7 +61,7 @@ public class ExceptionHandlingMiddleware
             _logger.LogError(exception, "Unhandled exception occurred");
         }
 
-        context.Response.StatusCode = problemDetails.Status.Value;
+        context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
         context.Response.ContentType = "application/problem+json";
 
         await context.Response.WriteAsJsonAsync(problemDetails);

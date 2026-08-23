@@ -3,7 +3,7 @@ namespace PracticumEventManagement.Services;
 
 public interface IEventService
 {
-    IEnumerable<Event> GetAll();
+    IEnumerable<Event> GetAll(string? title = null,DateTime? from = null,DateTime? to = null);
 
     Event? GetById(Guid id);
 

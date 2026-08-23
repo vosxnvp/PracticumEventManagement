@@ -17,9 +17,12 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Event>> GetAll()
+    public ActionResult<IEnumerable<Event>> GetAll(
+    [FromQuery] string? title,
+    [FromQuery] DateTime? from,
+    [FromQuery] DateTime? to)
     {
-        var events = _eventService.GetAll();
+        var events = _eventService.GetAll(title, from, to);
 
         return Ok(events);
     }

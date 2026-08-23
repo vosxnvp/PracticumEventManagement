@@ -7,12 +7,33 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = new();
 
-    public IEnumerable<Event> GetAll()
+    public IEnumerable<Event> GetAll(
+    string? title = null,
+    DateTime? from = null,
+    DateTime? to = null)
     {
-        return _events;
+        var query = _events.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            query = query.Where(e =>
+                e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (from.HasValue)
+        {
+            query = query.Where(e => e.StartAt >= from.Value);
+        }
+
+        if (to.HasValue)
+        {
+            query = query.Where(e => e.EndAt <= to.Value);
+        }
+
+        return query;
     }
 
-    public Event? GetById(Guid id)
+    public Event GetById(Guid id)
     {
         return _events.FirstOrDefault(e => e.Id == id) ?? throw new NotFoundException($"Event with id {id} was not found.");
     }
