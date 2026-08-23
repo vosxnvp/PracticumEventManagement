@@ -8,31 +8,7 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = new();
 
-    public IEnumerable<Event> GetAll(
-    string? title = null,
-    DateTime? from = null,
-    DateTime? to = null)
-    {
-        var query = _events.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(title))
-        {
-            query = query.Where(e =>
-                e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (from.HasValue)
-        {
-            query = query.Where(e => e.StartAt >= from.Value);
-        }
-
-        if (to.HasValue)
-        {
-            query = query.Where(e => e.EndAt <= to.Value);
-        }
-
-        return query;
-    }
+    
 
     public Event GetById(Guid id)
     {
@@ -87,6 +63,16 @@ public class EventService : IEventService
     int page = 1,
     int pageSize = 10)
     {
+        if (page < 1)
+        {
+            throw new ValidationException("page должен быть больше или равен 1");
+        }
+
+        if (pageSize < 1)
+        {
+            throw new ValidationException("pageSize должен быть больше или равен 1.");
+        }
+
         var query = _events.AsEnumerable();
 
         if (!string.IsNullOrWhiteSpace(title))
