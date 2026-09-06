@@ -35,7 +35,7 @@ public class EventsController : ControllerBase
     {
         var eventItem = _eventService.GetById(id);
 
-         return Ok(eventItem);
+        return Ok(eventItem);
     }
 
     [HttpPost]
@@ -79,7 +79,7 @@ public class EventsController : ControllerBase
     {
         var deleted = _eventService.Delete(id);
 
-    
+
 
         return NoContent();
     }
