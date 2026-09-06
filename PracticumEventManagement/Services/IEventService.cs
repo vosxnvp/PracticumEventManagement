@@ -4,7 +4,7 @@ namespace PracticumEventManagement.Services;
 
 public interface IEventService
 {
-  
+
 
     Event? GetById(Guid id);
 

@@ -61,9 +61,14 @@ public class ExceptionHandlingMiddleware
             _logger.LogError(exception, "Unhandled exception occurred");
         }
 
-        context.Response.StatusCode = problemDetails.Status ?? StatusCodes.Status500InternalServerError;
-        context.Response.ContentType = "application/problem+json";
+        context.Response.StatusCode =
+     problemDetails.Status ?? StatusCodes.Status500InternalServerError;
 
-        await context.Response.WriteAsJsonAsync(problemDetails);
+        await context.Response.WriteAsJsonAsync(
+            problemDetails,
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: context.RequestAborted);
+
     }
 }

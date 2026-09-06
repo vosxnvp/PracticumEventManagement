@@ -8,7 +8,7 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = new();
 
-    
+
 
     public Event GetById(Guid id)
     {

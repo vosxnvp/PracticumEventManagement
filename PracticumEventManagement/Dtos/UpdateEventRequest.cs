@@ -23,7 +23,7 @@ public class UpdateEventRequest : IValidatableObject
             EndAt <= StartAt)
         {
             yield return new ValidationResult(
-                "EndAt должен быть позже StartAt.",
+                "EndAt must be later than StartAt.",
                 new[] { nameof(EndAt) });
         }
     }
