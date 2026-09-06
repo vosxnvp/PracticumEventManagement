@@ -3,6 +3,7 @@ using PracticumEventManagement.Models;
 using PracticumEventManagement.Services;
 using PracticumEventManagement.Dtos;
 
+
 namespace PracticumEventManagement.Controllers;
 
 [ApiController]
@@ -17,11 +18,16 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Event>> GetAll()
+    public ActionResult<PaginatedResult<Event>> GetAll(
+    [FromQuery] string? title,
+    [FromQuery] DateTime? from,
+    [FromQuery] DateTime? to,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 10)
     {
-        var events = _eventService.GetAll();
+        var result = _eventService.GetAll(title, from, to, page, pageSize);
 
-        return Ok(events);
+        return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
@@ -29,12 +35,7 @@ public class EventsController : ControllerBase
     {
         var eventItem = _eventService.GetById(id);
 
-        if (eventItem is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(eventItem);
+         return Ok(eventItem);
     }
 
     [HttpPost]
@@ -69,10 +70,6 @@ public class EventsController : ControllerBase
 
         var updated = _eventService.Update(id, eventItem);
 
-        if (!updated)
-        {
-            return NotFound();
-        }
 
         return NoContent();
     }
@@ -82,10 +79,7 @@ public class EventsController : ControllerBase
     {
         var deleted = _eventService.Delete(id);
 
-        if (!deleted)
-        {
-            return NotFound();
-        }
+    
 
         return NoContent();
     }

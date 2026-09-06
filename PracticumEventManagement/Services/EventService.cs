@@ -1,4 +1,6 @@
-﻿using PracticumEventManagement.Models;
+﻿using PracticumEventManagement.Dtos;
+using PracticumEventManagement.Exceptions;
+using PracticumEventManagement.Models;
 
 namespace PracticumEventManagement.Services;
 
@@ -6,18 +8,19 @@ public class EventService : IEventService
 {
     private readonly List<Event> _events = new();
 
-    public IEnumerable<Event> GetAll()
-    {
-        return _events;
-    }
+    
 
-    public Event? GetById(Guid id)
+    public Event GetById(Guid id)
     {
-        return _events.FirstOrDefault(e => e.Id == id);
+        return _events.FirstOrDefault(e => e.Id == id) ?? throw new NotFoundException($"Event with id {id} was not found.");
     }
 
     public Event Create(Event eventItem)
     {
+        if (eventItem.EndAt <= eventItem.StartAt)
+        {
+            throw new ValidationException("EndAt must be later than StartAt.");
+        }
         eventItem.Id = Guid.NewGuid();
         _events.Add(eventItem);
 
@@ -27,12 +30,10 @@ public class EventService : IEventService
     public bool Update(Guid id, Event eventItem)
     {
         var existingEvent = GetById(id);
-
-        if (existingEvent is null)
+        if (eventItem.EndAt <= eventItem.StartAt)
         {
-            return false;
+            throw new ValidationException("EndAt must be later than StartAt.");
         }
-
         existingEvent.Title = eventItem.Title;
         existingEvent.Description = eventItem.Description;
         existingEvent.StartAt = eventItem.StartAt;
@@ -53,5 +54,56 @@ public class EventService : IEventService
         _events.Remove(existingEvent);
 
         return true;
+    }
+
+    public PaginatedResult<Event> GetAll(
+    string? title = null,
+    DateTime? from = null,
+    DateTime? to = null,
+    int page = 1,
+    int pageSize = 10)
+    {
+        if (page < 1)
+        {
+            throw new ValidationException("page должен быть больше или равен 1");
+        }
+
+        if (pageSize < 1)
+        {
+            throw new ValidationException("pageSize должен быть больше или равен 1.");
+        }
+
+        var query = _events.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(title))
+        {
+            query = query.Where(e =>
+                e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (from.HasValue)
+        {
+            query = query.Where(e => e.StartAt >= from.Value);
+        }
+
+        if (to.HasValue)
+        {
+            query = query.Where(e => e.EndAt <= to.Value);
+        }
+
+        var totalCount = query.Count();
+
+        var items = query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PaginatedResult<Event>
+        {
+            TotalCount = totalCount,
+            Items = items,
+            Page = page,
+            Count = items.Count
+        };
     }
 }

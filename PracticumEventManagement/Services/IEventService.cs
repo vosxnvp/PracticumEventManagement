@@ -1,9 +1,10 @@
-﻿using PracticumEventManagement.Models;
+﻿using PracticumEventManagement.Dtos;
+using PracticumEventManagement.Models;
 namespace PracticumEventManagement.Services;
 
 public interface IEventService
 {
-    IEnumerable<Event> GetAll();
+  
 
     Event? GetById(Guid id);
 
@@ -12,5 +13,12 @@ public interface IEventService
     bool Update(Guid id, Event eventItem);
 
     bool Delete(Guid id);
+
+    PaginatedResult<Event> GetAll(
+    string? title = null,
+    DateTime? from = null,
+    DateTime? to = null,
+    int page = 1,
+    int pageSize = 10);
 }
 

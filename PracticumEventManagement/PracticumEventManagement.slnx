@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../PracticumEventManagement.Tests/PracticumEventManagement.Tests.csproj" />
   <Project Path="PracticumEventManagement.csproj" />
 </Solution>
