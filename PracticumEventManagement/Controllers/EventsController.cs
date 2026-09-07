@@ -11,10 +11,13 @@ namespace PracticumEventManagement.Controllers;
 public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
-
-    public EventsController(IEventService eventService)
+    private readonly IBookingService _bookingService;
+    public EventsController(
+     IEventService eventService,
+     IBookingService bookingService)
     {
         _eventService = eventService;
+        _bookingService = bookingService;
     }
 
     [HttpGet]
@@ -55,6 +58,16 @@ public class EventsController : ControllerBase
             nameof(GetById),
             new { id = createdEvent.Id },
             createdEvent);
+    }
+
+    [HttpPost("{id:guid}/book")]
+    public async Task<ActionResult<BookingInfo>> Book(Guid id)
+    {
+        var booking = await _bookingService.CreateBookingAsync(id);
+
+        return Accepted(
+            $"/bookings/{booking.Id}",
+            booking);
     }
 
     [HttpPut("{id:guid}")]
