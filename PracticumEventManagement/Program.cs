@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PracticumEventManagement.Middleware;
 using PracticumEventManagement.Services;
+using PracticumEventManagement.BackgroundServices;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -27,6 +28,8 @@ builder.Services
         };
     });
 builder.Services.AddSingleton<IEventService, EventService>();
+builder.Services.AddSingleton<IBookingService, BookingService>();
+builder.Services.AddHostedService<BookingProcessingService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
