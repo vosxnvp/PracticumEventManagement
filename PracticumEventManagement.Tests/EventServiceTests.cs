@@ -18,7 +18,8 @@ public class EventServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         };
 
         // Act
@@ -41,7 +42,8 @@ public class EventServiceTests
             Title = "Event 1",
             Description = "Description 1",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         service.Create(new Event
@@ -49,7 +51,8 @@ public class EventServiceTests
             Title = "Event 2",
             Description = "Description 2",
             StartAt = DateTime.UtcNow.AddDays(3),
-            EndAt = DateTime.UtcNow.AddDays(4)
+            EndAt = DateTime.UtcNow.AddDays(4),
+            TotalSeats = 10
         });
 
         // Act
@@ -71,7 +74,8 @@ public class EventServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         // Act
@@ -108,7 +112,8 @@ public class EventServiceTests
             Title = "Old title",
             Description = "Old description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         var updatedEvent = new Event
@@ -116,7 +121,8 @@ public class EventServiceTests
             Title = "New title",
             Description = "New description",
             StartAt = DateTime.UtcNow.AddDays(3),
-            EndAt = DateTime.UtcNow.AddDays(4)
+            EndAt = DateTime.UtcNow.AddDays(4),
+            TotalSeats = 10
         };
 
         // Act
@@ -141,7 +147,7 @@ public class EventServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2), TotalSeats = 10
         };
 
         var id = Guid.NewGuid();
@@ -164,7 +170,8 @@ public class EventServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         // Act
@@ -201,7 +208,7 @@ public class EventServiceTests
             Title = "Корпоратив новогодний",
             Description = "Пьянка 1",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2), TotalSeats = 10
         });
 
         service.Create(new Event
@@ -209,7 +216,7 @@ public class EventServiceTests
             Title = "Тимбилдинг команды",
             Description = "Пьянка 2",
             StartAt = DateTime.UtcNow.AddDays(3),
-            EndAt = DateTime.UtcNow.AddDays(4)
+            EndAt = DateTime.UtcNow.AddDays(4), TotalSeats = 10
         });
 
         // Act
@@ -234,7 +241,8 @@ public class EventServiceTests
             Title = "Событие 1",
             Description = "Описание 1",
             StartAt = baseDate.AddDays(1),
-            EndAt = baseDate.AddDays(2)
+            EndAt = baseDate.AddDays(2),
+            TotalSeats = 10
         });
 
         service.Create(new Event
@@ -242,7 +250,8 @@ public class EventServiceTests
             Title = "Событие 2",
             Description = "Описание 2",
             StartAt = baseDate.AddDays(5),
-            EndAt = baseDate.AddDays(6)
+            EndAt = baseDate.AddDays(6),
+            TotalSeats = 10
         });
 
         service.Create(new Event
@@ -250,7 +259,8 @@ public class EventServiceTests
             Title = "Событие 3",
             Description = "Описание 3",
             StartAt = baseDate.AddDays(10),
-            EndAt = baseDate.AddDays(11)
+            EndAt = baseDate.AddDays(11),
+            TotalSeats = 10
         });
 
         var from = baseDate.AddDays(4);
@@ -278,7 +288,8 @@ public class EventServiceTests
             Title = "Корпоратив Новогодний",
             Description = "Описание 1",
             StartAt = baseDate.AddDays(5),
-            EndAt = baseDate.AddDays(6)
+            EndAt = baseDate.AddDays(6),
+            TotalSeats = 10
         });
 
         service.Create(new Event
@@ -286,7 +297,8 @@ public class EventServiceTests
             Title = "Корпоратив летний",
             Description = "Описание 2",
             StartAt = baseDate.AddDays(10),
-            EndAt = baseDate.AddDays(11)
+            EndAt = baseDate.AddDays(11),
+            TotalSeats = 10
         });
 
         service.Create(new Event
@@ -294,7 +306,8 @@ public class EventServiceTests
             Title = "День рождение компании",
             Description = "Описание 3",
             StartAt = baseDate.AddDays(5),
-            EndAt = baseDate.AddDays(6)
+            EndAt = baseDate.AddDays(6),
+            TotalSeats = 10
         });
 
         var from = baseDate.AddDays(4);
@@ -328,7 +341,8 @@ public class EventServiceTests
                 Title = $"Событие {i}",
                 Description = $"Описание {i}",
                 StartAt = baseDate.AddDays(i),
-                EndAt = baseDate.AddDays(i + 1)
+                EndAt = baseDate.AddDays(i + 1),
+                TotalSeats = 10
             });
         }
 
@@ -377,7 +391,8 @@ public class EventServiceTests
             Title = "Test event",
             Description = "Valid dates",
             StartAt = new DateTime(2026, 8, 10),
-            EndAt = new DateTime(2026, 8, 11)
+            EndAt = new DateTime(2026, 8, 11),
+            TotalSeats = 10
         });
 
         var invalidEvent = new Event
@@ -385,7 +400,8 @@ public class EventServiceTests
             Title = "Updated event",
             Description = "Invalid dates",
             StartAt = new DateTime(2026, 8, 15),
-            EndAt = new DateTime(2026, 8, 14)
+            EndAt = new DateTime(2026, 8, 14),
+            TotalSeats = 10
         };
 
         // Act
@@ -419,5 +435,54 @@ public class EventServiceTests
 
         // Assert
         Assert.Throws<ValidationException>(action);
+    }
+
+    [Fact]
+    public void Create_ShouldSetAvailableSeatsEqualToTotalSeats()
+    {
+        // Arrange
+        var service = new EventService();
+
+        var eventItem = new Event
+        {
+            Title = "Test event",
+            Description = "Test description",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
+        };
+
+        // Act
+        var createdEvent = service.Create(eventItem);
+
+        // Assert
+        Assert.Equal(10, createdEvent.TotalSeats);
+        Assert.Equal(10, createdEvent.AvailableSeats);
+    }
+
+    [Fact]
+    public void Create_ShouldThrowValidationException_WhenTotalSeatsIsNotPositive()
+    {
+        // Arrange
+        var service = new EventService();
+
+        var eventItem = new Event
+        {
+            Title = "Test event",
+            Description = "Test description",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 0
+        };
+
+        // Act
+        var action = () => service.Create(eventItem);
+
+        // Assert
+        var exception = Assert.Throws<ValidationException>(action);
+
+        Assert.Equal(
+            "TotalSeats must be greater than zero.",
+            exception.Message);
     }
 }

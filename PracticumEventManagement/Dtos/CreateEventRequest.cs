@@ -15,6 +15,9 @@ public class CreateEventRequest : IValidatableObject
     [Required]
     public DateTime? EndAt { get; set; }
 
+    [Required]
+    public int? TotalSeats { get; set; }
+
     public IEnumerable<ValidationResult> Validate(
         ValidationContext validationContext)
     {

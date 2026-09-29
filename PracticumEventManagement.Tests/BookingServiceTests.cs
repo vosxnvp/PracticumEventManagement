@@ -18,7 +18,8 @@ public class BookingServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         // Act
@@ -44,7 +45,8 @@ public class BookingServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         // Act
@@ -72,7 +74,8 @@ public class BookingServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         var createdBooking =
@@ -101,7 +104,8 @@ public class BookingServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         var createdBooking =
@@ -130,7 +134,8 @@ public class BookingServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         var createdBooking =
@@ -175,7 +180,8 @@ public class BookingServiceTests
             Title = "Deleted event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         eventService.Delete(eventItem.Id);
@@ -251,7 +257,8 @@ public class BookingServiceTests
             Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2)
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
         var firstBooking =

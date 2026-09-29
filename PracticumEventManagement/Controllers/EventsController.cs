@@ -49,7 +49,9 @@ public class EventsController : ControllerBase
             Title = request.Title!,
             Description = request.Description,
             StartAt = request.StartAt!.Value,
-            EndAt = request.EndAt!.Value
+            EndAt = request.EndAt!.Value,
+            TotalSeats = request.TotalSeats!.Value,
+            
         };
 
         var createdEvent = _eventService.Create(eventItem);
