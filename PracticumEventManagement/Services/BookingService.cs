@@ -11,6 +11,7 @@ public class BookingService : IBookingService
 
     private readonly ConcurrentDictionary<Guid, Booking> _bookings = new();
 
+    private readonly object _bookingLock = new();
     public BookingService(IEventService eventService)
     {
         _eventService = eventService;
@@ -18,20 +19,33 @@ public class BookingService : IBookingService
 
     public Task<BookingInfo> CreateBookingAsync(Guid eventId)
     {
-        _eventService.GetById(eventId);
-
-        var booking = new Booking
+        lock (_bookingLock)
         {
-            Id = Guid.NewGuid(),
-            EventId = eventId,
-            Status = BookingStatus.Pending,
-            CreatedAt = DateTime.UtcNow,
-            ProcessedAt = null
-        };
+            var eventItem = _eventService.GetById(eventId);
 
-        _bookings[booking.Id] = booking;
+            if (eventItem is null)
+            {
+                throw new NotFoundException("Event not found");
+            }
 
-        return Task.FromResult(ToBookingInfo(booking));
+            if (!eventItem.TryReserveSeats())
+            {
+                throw new NoAvailableSeatsException("No available seats for this event");
+            }
+
+            var booking = new Booking
+            {
+                Id = Guid.NewGuid(),
+                EventId = eventId,
+                Status = BookingStatus.Pending,
+                CreatedAt = DateTime.UtcNow,
+                ProcessedAt = null
+            };
+
+            _bookings[booking.Id] = booking;
+
+            return Task.FromResult(ToBookingInfo(booking));
+        }
     }
 
     public Task<BookingInfo> GetBookingByIdAsync(Guid bookingId)

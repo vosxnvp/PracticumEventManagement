@@ -40,7 +40,12 @@ public class ExceptionHandlingMiddleware
                 Title = "Resource not found",
                 Detail = exception.Message
             },
-
+            NoAvailableSeatsException => new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "No available seats",
+                Detail = exception.Message
+            },
             ValidationException => new ProblemDetails
             {
                 Status = StatusCodes.Status400BadRequest,

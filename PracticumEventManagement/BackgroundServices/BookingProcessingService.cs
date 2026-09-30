@@ -1,4 +1,7 @@
-﻿using PracticumEventManagement.Services;
+﻿using PracticumEventManagement.Dtos;
+using PracticumEventManagement.Exceptions;
+using PracticumEventManagement.Models;
+using PracticumEventManagement.Services;
 
 namespace PracticumEventManagement.BackgroundServices;
 
@@ -11,54 +14,162 @@ public class BookingProcessingService : BackgroundService
         TimeSpan.FromSeconds(1);
 
     private readonly IBookingService _bookingService;
+    private readonly IEventService _eventService;
     private readonly ILogger<BookingProcessingService> _logger;
+    private readonly SemaphoreSlim _processingSemaphore = new(1, 1);
 
     public BookingProcessingService(
         IBookingService bookingService,
+        IEventService eventService,
         ILogger<BookingProcessingService> logger)
     {
         _bookingService = bookingService;
+        _eventService = eventService;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(
-        CancellationToken stoppingToken)
+  CancellationToken stoppingToken)
     {
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
                 var pendingBookings =
                     await _bookingService.GetPendingBookingsAsync();
 
-                foreach (var booking in pendingBookings)
-                {
-                    _logger.LogInformation(
-                        "Processing booking {BookingId}",
-                        booking.Id);
+                var tasks = pendingBookings.Select(
+                    booking => ProcessBookingAsync(
+                        booking,
+                        stoppingToken));
 
-                    await Task.Delay(
-                        ProcessingDelay,
-                        stoppingToken);
+                await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Unexpected error while processing booking batch");
+            }
 
-                    await _bookingService.ConfirmBookingAsync(
-                        booking.Id);
-
-                    _logger.LogInformation(
-                        "Booking {BookingId} confirmed",
-                        booking.Id);
-                }
-
+            try
+            {
                 await Task.Delay(
                     PollingInterval,
                     stoppingToken);
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+        }
+
+        _logger.LogInformation(
+            "Booking processing service stopped.");
+    }
+
+    private async Task ProcessBookingAsync(
+        BookingInfo booking,
+        CancellationToken stoppingToken)
+    {
+        var confirmed = false;
+
+        try
+        {
+            _logger.LogInformation(
+                "Processing booking {BookingId}",
+                booking.Id);
+
+            await Task.Delay(
+                ProcessingDelay,
+                stoppingToken);
+
+            await _processingSemaphore.WaitAsync(stoppingToken);
+
+            try
+            {
+                var eventItem =
+                    GetEventOrNull(booking.EventId);
+
+                if (eventItem is null)
+                {
+                    await _bookingService.RejectBookingAsync(
+                        booking.Id);
+
+                    _logger.LogWarning(
+                        "Booking {BookingId} rejected because event {EventId} was not found",
+                        booking.Id,
+                        booking.EventId);
+
+                    return;
+                }
+
+                await _bookingService.ConfirmBookingAsync(
+                    booking.Id);
+
+                confirmed = true;
+
+                _logger.LogInformation(
+                    "Booking {BookingId} confirmed",
+                    booking.Id);
+            }
+            finally
+            {
+                _processingSemaphore.Release();
             }
         }
         catch (OperationCanceledException)
             when (stoppingToken.IsCancellationRequested)
         {
-            _logger.LogInformation(
-                "Booking processing service stopped.");
+            throw;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Error while processing booking {BookingId}",
+                booking.Id);
+
+            if (!confirmed)
+            {
+                await _processingSemaphore.WaitAsync();
+
+                try
+                {
+                    var eventItem =
+                        GetEventOrNull(booking.EventId);
+
+                    if (eventItem is not null)
+                    {
+                        eventItem.ReleaseSeats();
+                    }
+
+                    await _bookingService.RejectBookingAsync(
+                        booking.Id);
+                }
+                finally
+                {
+                    _processingSemaphore.Release();
+                }
+            }
+        }
+    }
+
+    private Event? GetEventOrNull(Guid eventId)
+    {
+        try
+        {
+            return _eventService.GetById(eventId);
+        }
+        catch (NotFoundException)
+        {
+            return null;
         }
     }
 }

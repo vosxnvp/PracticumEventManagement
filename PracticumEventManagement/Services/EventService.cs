@@ -17,10 +17,17 @@ public class EventService : IEventService
 
     public Event Create(Event eventItem)
     {
+      
         if (eventItem.EndAt <= eventItem.StartAt)
         {
             throw new ValidationException("EndAt must be later than StartAt.");
         }
+
+        if (eventItem.TotalSeats <= 0)
+        {
+            throw new ValidationException("TotalSeats must be greater than zero.");
+        }
+        eventItem.AvailableSeats = eventItem.TotalSeats;
         eventItem.Id = Guid.NewGuid();
         _events.Add(eventItem);
 
