@@ -1,4 +1,6 @@
 ﻿using PracticumEventManagement.Dtos;
+using PracticumEventManagement.Exceptions;
+using PracticumEventManagement.Models;
 using PracticumEventManagement.Services;
 
 namespace PracticumEventManagement.BackgroundServices;
@@ -26,12 +28,12 @@ public class BookingProcessingService : BackgroundService
         _logger = logger;
     }
 
-        protected override async Task ExecuteAsync(
-            CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(
+  CancellationToken stoppingToken)
     {
-        try
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
                 var pendingBookings =
                     await _bookingService.GetPendingBookingsAsync();
@@ -42,18 +44,34 @@ public class BookingProcessingService : BackgroundService
                         stoppingToken));
 
                 await Task.WhenAll(tasks);
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    exception,
+                    "Unexpected error while processing booking batch");
+            }
 
+            try
+            {
                 await Task.Delay(
                     PollingInterval,
                     stoppingToken);
             }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
         }
-        catch (OperationCanceledException)
-            when (stoppingToken.IsCancellationRequested)
-        {
-            _logger.LogInformation(
-                "Booking processing service stopped.");
-        }
+
+        _logger.LogInformation(
+            "Booking processing service stopped.");
     }
 
     private async Task ProcessBookingAsync(
@@ -77,7 +95,7 @@ public class BookingProcessingService : BackgroundService
             try
             {
                 var eventItem =
-                    _eventService.GetById(booking.EventId);
+                    GetEventOrNull(booking.EventId);
 
                 if (eventItem is null)
                 {
@@ -125,7 +143,7 @@ public class BookingProcessingService : BackgroundService
                 try
                 {
                     var eventItem =
-                        _eventService.GetById(booking.EventId);
+                        GetEventOrNull(booking.EventId);
 
                     if (eventItem is not null)
                     {
@@ -140,6 +158,18 @@ public class BookingProcessingService : BackgroundService
                     _processingSemaphore.Release();
                 }
             }
+        }
+    }
+
+    private Event? GetEventOrNull(Guid eventId)
+    {
+        try
+        {
+            return _eventService.GetById(eventId);
+        }
+        catch (NotFoundException)
+        {
+            return null;
         }
     }
 }
