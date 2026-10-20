@@ -44,14 +44,12 @@ public class EventsController : ControllerBase
     [HttpPost]
     public ActionResult<Event> Create(CreateEventRequest request)
     {
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = request.Title!,
-            Description = request.Description,
-            StartAt = request.StartAt!.Value,
-            EndAt = request.EndAt!.Value,
-            TotalSeats = request.TotalSeats!.Value,
-            
+            Description = "Test description",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         };
 
         var createdEvent = _eventService.Create(eventItem);
@@ -76,12 +74,12 @@ public class EventsController : ControllerBase
     [HttpPut("{id:guid}")]
     public IActionResult Update(Guid id, UpdateEventRequest request)
     {
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = request.Title!,
-            Description = request.Description,
-            StartAt = request.StartAt!.Value,
-            EndAt = request.EndAt!.Value
+            Description = "Test description",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         };
 
         var updated = _eventService.Update(id, eventItem);

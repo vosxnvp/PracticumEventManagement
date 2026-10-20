@@ -13,9 +13,8 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -37,18 +36,16 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        service.Create(new Event
+        service.Create(new Event("Event 1")
         {
-            Title = "Event 1",
             Description = "Description 1",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        service.Create(new Event("Event 2")
         {
-            Title = "Event 2",
             Description = "Description 2",
             StartAt = DateTime.UtcNow.AddDays(3),
             EndAt = DateTime.UtcNow.AddDays(4),
@@ -69,9 +66,8 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = service.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -107,18 +103,16 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = service.Create(new Event("Old title")
         {
-            Title = "Old title",
             Description = "Old description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
             TotalSeats = 10
         });
 
-        var updatedEvent = new Event
+        var updatedEvent = new Event("New title")
         {
-            Title = "New title",
             Description = "New description",
             StartAt = DateTime.UtcNow.AddDays(3),
             EndAt = DateTime.UtcNow.AddDays(4),
@@ -142,12 +136,12 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2), TotalSeats = 10
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         };
 
         var id = Guid.NewGuid();
@@ -165,9 +159,8 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = service.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -203,20 +196,20 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        service.Create(new Event
+        service.Create(new Event("Корпоратив новогодний")
         {
-            Title = "Корпоратив новогодний",
             Description = "Пьянка 1",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2), TotalSeats = 10
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
-        service.Create(new Event
+        service.Create(new Event("Тимбилдинг команды")
         {
-            Title = "Тимбилдинг команды",
             Description = "Пьянка 2",
             StartAt = DateTime.UtcNow.AddDays(3),
-            EndAt = DateTime.UtcNow.AddDays(4), TotalSeats = 10
+            EndAt = DateTime.UtcNow.AddDays(4),
+            TotalSeats = 10
         });
 
         // Act
@@ -236,27 +229,24 @@ public class EventServiceTests
 
         var baseDate = new DateTime(2026, 8, 1);
 
-        service.Create(new Event
+        service.Create(new Event("Событие 1")
         {
-            Title = "Событие 1",
             Description = "Описание 1",
             StartAt = baseDate.AddDays(1),
             EndAt = baseDate.AddDays(2),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        service.Create(new Event("Событие 2")
         {
-            Title = "Событие 2",
             Description = "Описание 2",
             StartAt = baseDate.AddDays(5),
             EndAt = baseDate.AddDays(6),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        service.Create(new Event("Событие 3")
         {
-            Title = "Событие 3",
             Description = "Описание 3",
             StartAt = baseDate.AddDays(10),
             EndAt = baseDate.AddDays(11),
@@ -283,27 +273,24 @@ public class EventServiceTests
 
         var baseDate = new DateTime(2026, 8, 1);
 
-        service.Create(new Event
+        service.Create(new Event("Корпоратив Новогодний")
         {
-            Title = "Корпоратив Новогодний",
             Description = "Описание 1",
             StartAt = baseDate.AddDays(5),
             EndAt = baseDate.AddDays(6),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        service.Create(new Event("Корпоратив летний")
         {
-            Title = "Корпоратив летний",
             Description = "Описание 2",
             StartAt = baseDate.AddDays(10),
             EndAt = baseDate.AddDays(11),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        service.Create(new Event("День рождение компании")
         {
-            Title = "День рождение компании",
             Description = "Описание 3",
             StartAt = baseDate.AddDays(5),
             EndAt = baseDate.AddDays(6),
@@ -336,9 +323,8 @@ public class EventServiceTests
 
         for (var i = 1; i <= 5; i++)
         {
-            service.Create(new Event
+            service.Create(new Event($"Событие {i}")
             {
-                Title = $"Событие {i}",
                 Description = $"Описание {i}",
                 StartAt = baseDate.AddDays(i),
                 EndAt = baseDate.AddDays(i + 1),
@@ -366,9 +352,8 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var eventItem = new Event
+        var eventItem = new Event("Invalid event")
         {
-            Title = "Invalid event",
             Description = "Invalid dates",
             StartAt = new DateTime(2026, 8, 10),
             EndAt = new DateTime(2026, 8, 9)
@@ -386,18 +371,16 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = service.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Valid dates",
             StartAt = new DateTime(2026, 8, 10),
             EndAt = new DateTime(2026, 8, 11),
             TotalSeats = 10
         });
 
-        var invalidEvent = new Event
+        var invalidEvent = new Event("Updated event")
         {
-            Title = "Updated event",
             Description = "Invalid dates",
             StartAt = new DateTime(2026, 8, 15),
             EndAt = new DateTime(2026, 8, 14),
@@ -443,9 +426,8 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -466,9 +448,8 @@ public class EventServiceTests
         // Arrange
         var service = new EventService();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),

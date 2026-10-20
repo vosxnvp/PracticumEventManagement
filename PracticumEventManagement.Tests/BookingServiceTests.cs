@@ -14,9 +14,8 @@ public class BookingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -41,9 +40,8 @@ public class BookingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -66,9 +64,8 @@ public class BookingServiceTests
     EventService eventService,
     int totalSeats = 10)
     {
-        return eventService.Create(new Event
+        return eventService.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -82,9 +79,8 @@ public class BookingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -112,9 +108,8 @@ public class BookingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -142,9 +137,8 @@ public class BookingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -188,9 +182,8 @@ public class BookingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Deleted event")
         {
-            Title = "Deleted event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -265,9 +258,8 @@ public class BookingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),

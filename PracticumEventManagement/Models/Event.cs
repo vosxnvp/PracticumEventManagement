@@ -1,19 +1,34 @@
-﻿namespace PracticumEventManagement.Models;
+﻿using System.Text.Json.Serialization;
+
+namespace PracticumEventManagement.Models;
 
 public class Event
 {
+    private Event()
+    {
+    }
+
+    public Event(string title)
+    {
+        Title = title;
+    }
+
     public Guid Id { get; set; }
 
-    public string Title { get; set; } = string.Empty;
+    public string Title { get; set; } = null!;
 
     public string? Description { get; set; }
 
     public DateTime StartAt { get; set; }
 
     public DateTime EndAt { get; set; }
+
     public int TotalSeats { get; set; }
 
     public int AvailableSeats { get; set; }
+
+    [JsonIgnore]
+    public ICollection<Booking> Bookings { get; } = new List<Booking>();
 
     public bool TryReserveSeats(int count = 1)
     {

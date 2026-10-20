@@ -16,9 +16,8 @@ public class BookingProcessingServiceTests
         var eventService = new EventService();
         var bookingService = new BookingService(eventService);
 
-        var eventItem = eventService.Create(new Event
+        var eventItem = eventService.Create(new Event("Deleted event")
         {
-            Title = "Deleted event",
             Description = "Test event",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
