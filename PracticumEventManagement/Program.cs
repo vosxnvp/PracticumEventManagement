@@ -2,7 +2,17 @@ using Microsoft.AspNetCore.Mvc;
 using PracticumEventManagement.Middleware;
 using PracticumEventManagement.Services;
 using PracticumEventManagement.BackgroundServices;
+using Microsoft.EntityFrameworkCore;
+using PracticumEventManagement.DataAccess;
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration
+    .GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' was not found.");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Add services to the container.
 
