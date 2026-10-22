@@ -8,10 +8,9 @@ public class BookingTests
     public void Confirm_ShouldSetConfirmedStatusAndProcessedAt()
     {
         // Arrange
-        var booking = new Booking
+        var booking = new Booking(Guid.NewGuid())
         {
             Id = Guid.NewGuid(),
-            EventId = Guid.NewGuid(),
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };
@@ -28,10 +27,9 @@ public class BookingTests
     public void Reject_ShouldSetRejectedStatusAndProcessedAt()
     {
         // Arrange
-        var booking = new Booking
+        var booking = new Booking(Guid.NewGuid())
         {
             Id = Guid.NewGuid(),
-            EventId = Guid.NewGuid(),
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow
         };

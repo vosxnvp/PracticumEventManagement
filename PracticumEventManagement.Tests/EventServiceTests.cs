@@ -1,4 +1,6 @@
-﻿using PracticumEventManagement.Exceptions;
+﻿using Microsoft.Extensions.DependencyInjection;
+using PracticumEventManagement.Exceptions;
+using PracticumEventManagement.Tests.Infrastructure;
 using PracticumEventManagement.Models;
 using PracticumEventManagement.Services;
 
@@ -8,14 +10,15 @@ namespace PracticumEventManagement.Tests;
 public class EventServiceTests
 {
     [Fact]
-    public void Create_ShouldAddEventAndGenerateId()
+    public async Task Create_ShouldAddEventAndGenerateId()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -23,7 +26,7 @@ public class EventServiceTests
         };
 
         // Act
-        var createdEvent = service.Create(eventItem);
+        var createdEvent = await service.CreateAsync(eventItem);
 
         // Assert
         Assert.NotEqual(Guid.Empty, createdEvent.Id);
@@ -32,23 +35,23 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetAll_ShouldReturnAllEvents()
+    public async Task GetAll_ShouldReturnAllEvents()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Event 1")
         {
-            Title = "Event 1",
             Description = "Description 1",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Event 2")
         {
-            Title = "Event 2",
             Description = "Description 2",
             StartAt = DateTime.UtcNow.AddDays(3),
             EndAt = DateTime.UtcNow.AddDays(4),
@@ -56,7 +59,7 @@ public class EventServiceTests
         });
 
         // Act
-        var result = service.GetAll();
+        var result = await service.GetAllAsync();
 
         // Assert
         Assert.Equal(2, result.TotalCount);
@@ -64,14 +67,15 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetById_ShouldReturnEvent_WhenEventExists()
+    public async Task GetById_ShouldReturnEvent_WhenEventExists()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = await service.CreateAsync(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -79,7 +83,7 @@ public class EventServiceTests
         });
 
         // Act
-        var result = service.GetById(createdEvent.Id);
+        var result = await service.GetByIdAsync(createdEvent.Id);
 
         // Assert
         Assert.Equal(createdEvent.Id, result.Id);
@@ -88,37 +92,39 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetById_ShouldThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task GetById_ShouldThrowNotFoundException_WhenEventDoesNotExist()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
         var id = Guid.NewGuid();
 
         // Act
-        var action = () => service.GetById(id);
+        Func<Task> action = async () => await service.GetByIdAsync(id);
 
         // Assert
-        Assert.Throws<NotFoundException>(action);
+        await Assert.ThrowsAsync<NotFoundException>(action);
     }
 
     [Fact]
-    public void Update_ShouldUpdateEvent_WhenEventExists()
+    public async Task Update_ShouldUpdateEvent_WhenEventExists()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = await service.CreateAsync(new Event("Old title")
         {
-            Title = "Old title",
             Description = "Old description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
             TotalSeats = 10
         });
 
-        var updatedEvent = new Event
+        var updatedEvent = new Event("New title")
         {
-            Title = "New title",
             Description = "New description",
             StartAt = DateTime.UtcNow.AddDays(3),
             EndAt = DateTime.UtcNow.AddDays(4),
@@ -126,8 +132,8 @@ public class EventServiceTests
         };
 
         // Act
-        var result = service.Update(createdEvent.Id, updatedEvent);
-        var eventAfterUpdate = service.GetById(createdEvent.Id);
+        var result = await service.UpdateAsync(createdEvent.Id, updatedEvent);
+        var eventAfterUpdate = await service.GetByIdAsync(createdEvent.Id);
 
         // Assert
         Assert.True(result);
@@ -137,37 +143,40 @@ public class EventServiceTests
         Assert.Equal(updatedEvent.EndAt, eventAfterUpdate.EndAt);
     }
     [Fact]
-    public void Update_ShouldThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task Update_ShouldThrowNotFoundException_WhenEventDoesNotExist()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2), TotalSeats = 10
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         };
 
         var id = Guid.NewGuid();
 
         // Act
-        Action action = () => service.Update(id, eventItem);
+        Func<Task> action = async () => await service.UpdateAsync(id, eventItem);
 
         // Assert
-        Assert.Throws<NotFoundException>(action);
+        await Assert.ThrowsAsync<NotFoundException>(action);
     }
 
     [Fact]
-    public void Delete_ShouldDeleteEvent_WhenEventExists()
+    public async Task Delete_ShouldDeleteEvent_WhenEventExists()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = await service.CreateAsync(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -175,52 +184,56 @@ public class EventServiceTests
         });
 
         // Act
-        var result = service.Delete(createdEvent.Id);
+        var result = await service.DeleteAsync(createdEvent.Id);
 
         // Assert
         Assert.True(result);
-        Assert.Throws<NotFoundException>(
-            () => service.GetById(createdEvent.Id));
+        await Assert.ThrowsAsync<NotFoundException>(
+            () => service.GetByIdAsync(createdEvent.Id));
     }
 
     [Fact]
-    public void Delete_ShouldThrowNotFoundException_WhenEventDoesNotExist()
+    public async Task Delete_ShouldThrowNotFoundException_WhenEventDoesNotExist()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
         var id = Guid.NewGuid();
 
         // Act
-        Action action = () => service.Delete(id);
+        Func<Task> action = async () => await service.DeleteAsync(id);
 
         // Assert
-        Assert.Throws<NotFoundException>(action);
+        await Assert.ThrowsAsync<NotFoundException>(action);
     }
 
     [Fact]
-    public void GetAll_ShouldFilterByTitle_CaseInsensitive()
+    public async Task GetAll_ShouldFilterByTitle_CaseInsensitive()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Корпоратив новогодний")
         {
-            Title = "Корпоратив новогодний",
             Description = "Пьянка 1",
             StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2), TotalSeats = 10
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
         });
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Тимбилдинг команды")
         {
-            Title = "Тимбилдинг команды",
             Description = "Пьянка 2",
             StartAt = DateTime.UtcNow.AddDays(3),
-            EndAt = DateTime.UtcNow.AddDays(4), TotalSeats = 10
+            EndAt = DateTime.UtcNow.AddDays(4),
+            TotalSeats = 10
         });
 
         // Act
-        var result = service.GetAll(title: "корпоратив");
+        var result = await service.GetAllAsync(title: "корпоратив");
 
         // Assert
         Assert.Equal(1, result.TotalCount);
@@ -229,34 +242,33 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetAll_ShouldFilterByDates()
+    public async Task GetAll_ShouldFilterByDates()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         var baseDate = new DateTime(2026, 8, 1);
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Событие 1")
         {
-            Title = "Событие 1",
             Description = "Описание 1",
             StartAt = baseDate.AddDays(1),
             EndAt = baseDate.AddDays(2),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Событие 2")
         {
-            Title = "Событие 2",
             Description = "Описание 2",
             StartAt = baseDate.AddDays(5),
             EndAt = baseDate.AddDays(6),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Событие 3")
         {
-            Title = "Событие 3",
             Description = "Описание 3",
             StartAt = baseDate.AddDays(10),
             EndAt = baseDate.AddDays(11),
@@ -267,7 +279,7 @@ public class EventServiceTests
         var to = baseDate.AddDays(7);
 
         // Act
-        var result = service.GetAll(from: from, to: to);
+        var result = await service.GetAllAsync(from: from, to: to);
 
         // Assert
         Assert.Equal(1, result.TotalCount);
@@ -276,34 +288,33 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void GetAll_ShouldApplyCombinedFilters()
+    public async Task GetAll_ShouldApplyCombinedFilters()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         var baseDate = new DateTime(2026, 8, 1);
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Корпоратив Новогодний")
         {
-            Title = "Корпоратив Новогодний",
             Description = "Описание 1",
             StartAt = baseDate.AddDays(5),
             EndAt = baseDate.AddDays(6),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("Корпоратив летний")
         {
-            Title = "Корпоратив летний",
             Description = "Описание 2",
             StartAt = baseDate.AddDays(10),
             EndAt = baseDate.AddDays(11),
             TotalSeats = 10
         });
 
-        service.Create(new Event
+        await service.CreateAsync(new Event("День рождение компании")
         {
-            Title = "День рождение компании",
             Description = "Описание 3",
             StartAt = baseDate.AddDays(5),
             EndAt = baseDate.AddDays(6),
@@ -314,7 +325,7 @@ public class EventServiceTests
         var to = baseDate.AddDays(7);
 
         // Act
-        var result = service.GetAll(
+        var result = await service.GetAllAsync(
             title: "корпоратив",
             from: from,
             to: to);
@@ -327,18 +338,19 @@ public class EventServiceTests
 
 
     [Fact]
-    public void GetAll_ShouldReturnCorrectPage()
+    public async Task GetAll_ShouldReturnCorrectPage()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         var baseDate = new DateTime(2026, 8, 1);
 
         for (var i = 1; i <= 5; i++)
         {
-            service.Create(new Event
+            await service.CreateAsync(new Event($"Событие {i}")
             {
-                Title = $"Событие {i}",
                 Description = $"Описание {i}",
                 StartAt = baseDate.AddDays(i),
                 EndAt = baseDate.AddDays(i + 1),
@@ -347,7 +359,7 @@ public class EventServiceTests
         }
 
         // Act
-        var result = service.GetAll(page: 2, pageSize: 2);
+        var result = await service.GetAllAsync(page: 2, pageSize: 2);
 
         // Assert
         Assert.Equal(5, result.TotalCount);
@@ -361,43 +373,44 @@ public class EventServiceTests
         Assert.Equal("Событие 4", items[1].Title);
     }
     [Fact]
-    public void Create_ShouldThrowValidationException_WhenEndAtIsBeforeStartAt()
+    public async Task Create_ShouldThrowValidationException_WhenEndAtIsBeforeStartAt()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var eventItem = new Event
+        var eventItem = new Event("Invalid event")
         {
-            Title = "Invalid event",
             Description = "Invalid dates",
             StartAt = new DateTime(2026, 8, 10),
             EndAt = new DateTime(2026, 8, 9)
         };
 
         // Act
-        Action action = () => service.Create(eventItem);
+        Func<Task> action = async () => await service.CreateAsync(eventItem);
 
         // Assert
-        Assert.Throws<ValidationException>(action);
+        await Assert.ThrowsAsync<ValidationException>(action);
     }
     [Fact]
-    public void Update_ShouldThrowValidationException_WhenEndAtIsBeforeStartAt()
+    public async Task Update_ShouldThrowValidationException_WhenEndAtIsBeforeStartAt()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var createdEvent = service.Create(new Event
+        var createdEvent = await service.CreateAsync(new Event("Test event")
         {
-            Title = "Test event",
             Description = "Valid dates",
             StartAt = new DateTime(2026, 8, 10),
             EndAt = new DateTime(2026, 8, 11),
             TotalSeats = 10
         });
 
-        var invalidEvent = new Event
+        var invalidEvent = new Event("Updated event")
         {
-            Title = "Updated event",
             Description = "Invalid dates",
             StartAt = new DateTime(2026, 8, 15),
             EndAt = new DateTime(2026, 8, 14),
@@ -405,47 +418,52 @@ public class EventServiceTests
         };
 
         // Act
-        Action action = () => service.Update(createdEvent.Id, invalidEvent);
+        Func<Task> action = async () => await service.UpdateAsync(createdEvent.Id, invalidEvent);
 
         // Assert
-        Assert.Throws<ValidationException>(action);
+        await Assert.ThrowsAsync<ValidationException>(action);
     }
 
     [Fact]
-    public void GetAll_ShouldThrowValidationException_WhenPageIsLessThanOne()
+    public async Task GetAll_ShouldThrowValidationException_WhenPageIsLessThanOne()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         // Act
-        Action action = () => service.GetAll(page: 0);
+        Func<Task> action = async () => await service.GetAllAsync(page: 0);
 
         // Assert
-        Assert.Throws<ValidationException>(action);
+        await Assert.ThrowsAsync<ValidationException>(action);
     }
 
     [Fact]
-    public void GetAll_ShouldThrowValidationException_WhenPageSizeIsLessThanOne()
+    public async Task GetAll_ShouldThrowValidationException_WhenPageSizeIsLessThanOne()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
         // Act
-        Action action = () => service.GetAll(pageSize: 0);
+        Func<Task> action = async () => await service.GetAllAsync(pageSize: 0);
 
         // Assert
-        Assert.Throws<ValidationException>(action);
+        await Assert.ThrowsAsync<ValidationException>(action);
     }
 
     [Fact]
-    public void Create_ShouldSetAvailableSeatsEqualToTotalSeats()
+    public async Task Create_ShouldSetAvailableSeatsEqualToTotalSeats()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -453,7 +471,7 @@ public class EventServiceTests
         };
 
         // Act
-        var createdEvent = service.Create(eventItem);
+        var createdEvent = await service.CreateAsync(eventItem);
 
         // Assert
         Assert.Equal(10, createdEvent.TotalSeats);
@@ -461,14 +479,15 @@ public class EventServiceTests
     }
 
     [Fact]
-    public void Create_ShouldThrowValidationException_WhenTotalSeatsIsNotPositive()
+    public async Task Create_ShouldThrowValidationException_WhenTotalSeatsIsNotPositive()
     {
         // Arrange
-        var service = new EventService();
+        using var provider = TestDbFactory.CreateProvider();
+        using var scope = provider.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<IEventService>();
 
-        var eventItem = new Event
+        var eventItem = new Event("Test event")
         {
-            Title = "Test event",
             Description = "Test description",
             StartAt = DateTime.UtcNow.AddDays(1),
             EndAt = DateTime.UtcNow.AddDays(2),
@@ -476,10 +495,10 @@ public class EventServiceTests
         };
 
         // Act
-        var action = () => service.Create(eventItem);
+        Func<Task> action = async () => await service.CreateAsync(eventItem);
 
         // Assert
-        var exception = Assert.Throws<ValidationException>(action);
+        var exception = await Assert.ThrowsAsync<ValidationException>(action);
 
         Assert.Equal(
             "TotalSeats must be greater than zero.",

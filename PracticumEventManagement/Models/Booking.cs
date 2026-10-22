@@ -1,7 +1,18 @@
-﻿namespace PracticumEventManagement.Models
+﻿using System.Text.Json.Serialization;
+
+namespace PracticumEventManagement.Models
 {
     public class Booking
     {
+        private Booking()
+        {
+        }
+
+        public Booking(Guid eventId)
+        {
+            EventId = eventId;
+        }
+
         public Guid Id { get; set; }
 
         public Guid EventId { get; set; }
@@ -11,6 +22,9 @@
         public DateTime CreatedAt { get; set; }
 
         public DateTime? ProcessedAt { get; set; }
+
+        [JsonIgnore]
+        public Event? Event { get; set; }
 
         public void Confirm()
         {
