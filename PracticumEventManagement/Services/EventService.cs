@@ -1,4 +1,6 @@
-﻿using PracticumEventManagement.Dtos;
+﻿using Microsoft.EntityFrameworkCore;
+using PracticumEventManagement.DataAccess;
+using PracticumEventManagement.Dtos;
 using PracticumEventManagement.Exceptions;
 using PracticumEventManagement.Models;
 
@@ -6,18 +8,27 @@ namespace PracticumEventManagement.Services;
 
 public class EventService : IEventService
 {
-    private readonly List<Event> _events = new();
+    private readonly AppDbContext _context;
 
-
-
-    public Event GetById(Guid id)
+    public EventService(AppDbContext context)
     {
-        return _events.FirstOrDefault(e => e.Id == id) ?? throw new NotFoundException($"Event with id {id} was not found.");
+        _context = context;
     }
 
-    public Event Create(Event eventItem)
+    public async Task<Event> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
-      
+        return await _context.Events
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
+            ?? throw new NotFoundException($"Event with id {id} was not found.");
+    }
+
+    public async Task<Event> CreateAsync(
+        Event eventItem,
+        CancellationToken cancellationToken = default)
+    {
         if (eventItem.EndAt <= eventItem.StartAt)
         {
             throw new ValidationException("EndAt must be later than StartAt.");
@@ -27,48 +38,59 @@ public class EventService : IEventService
         {
             throw new ValidationException("TotalSeats must be greater than zero.");
         }
-        eventItem.AvailableSeats = eventItem.TotalSeats;
+
         eventItem.Id = Guid.NewGuid();
-        _events.Add(eventItem);
+        eventItem.AvailableSeats = eventItem.TotalSeats;
+
+        _context.Events.Add(eventItem);
+        await _context.SaveChangesAsync(cancellationToken);
 
         return eventItem;
     }
 
-    public bool Update(Guid id, Event eventItem)
+    public async Task<bool> UpdateAsync(
+        Guid id,
+        Event eventItem,
+        CancellationToken cancellationToken = default)
     {
-        var existingEvent = GetById(id);
+        var existingEvent = await _context.Events
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
+            ?? throw new NotFoundException($"Event with id {id} was not found.");
+
         if (eventItem.EndAt <= eventItem.StartAt)
         {
             throw new ValidationException("EndAt must be later than StartAt.");
         }
+
         existingEvent.Title = eventItem.Title;
         existingEvent.Description = eventItem.Description;
         existingEvent.StartAt = eventItem.StartAt;
         existingEvent.EndAt = eventItem.EndAt;
 
+        await _context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    public bool Delete(Guid id)
+    public async Task<bool> DeleteAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
     {
-        var existingEvent = GetById(id);
+        var existingEvent = await _context.Events
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
+            ?? throw new NotFoundException($"Event with id {id} was not found.");
 
-        if (existingEvent is null)
-        {
-            return false;
-        }
-
-        _events.Remove(existingEvent);
-
+        _context.Events.Remove(existingEvent);
+        await _context.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    public PaginatedResult<Event> GetAll(
-    string? title = null,
-    DateTime? from = null,
-    DateTime? to = null,
-    int page = 1,
-    int pageSize = 10)
+    public async Task<PaginatedResult<Event>> GetAllAsync(
+        string? title = null,
+        DateTime? from = null,
+        DateTime? to = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         if (page < 1)
         {
@@ -80,12 +102,12 @@ public class EventService : IEventService
             throw new ValidationException("pageSize должен быть больше или равен 1.");
         }
 
-        var query = _events.AsEnumerable();
+        IQueryable<Event> query = _context.Events.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(title))
         {
-            query = query.Where(e =>
-                e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+            var normalizedTitle = title.ToLower();
+            query = query.Where(e => e.Title.ToLower().Contains(normalizedTitle));
         }
 
         if (from.HasValue)
@@ -98,12 +120,14 @@ public class EventService : IEventService
             query = query.Where(e => e.EndAt <= to.Value);
         }
 
-        var totalCount = query.Count();
+        var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = query
+        var items = await query
+            .OrderBy(e => e.StartAt)
+            .ThenBy(e => e.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync(cancellationToken);
 
         return new PaginatedResult<Event>
         {

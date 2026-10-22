@@ -1,24 +1,23 @@
 ﻿using PracticumEventManagement.Dtos;
 using PracticumEventManagement.Models;
+
 namespace PracticumEventManagement.Services;
 
 public interface IEventService
 {
+    Task<Event> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<Event> CreateAsync(Event eventItem, CancellationToken cancellationToken = default);
 
-    Event? GetById(Guid id);
+    Task<bool> UpdateAsync(Guid id, Event eventItem, CancellationToken cancellationToken = default);
 
-    Event Create(Event eventItem);
+    Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 
-    bool Update(Guid id, Event eventItem);
-
-    bool Delete(Guid id);
-
-    PaginatedResult<Event> GetAll(
-    string? title = null,
-    DateTime? from = null,
-    DateTime? to = null,
-    int page = 1,
-    int pageSize = 10);
+    Task<PaginatedResult<Event>> GetAllAsync(
+        string? title = null,
+        DateTime? from = null,
+        DateTime? to = null,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default);
 }
-

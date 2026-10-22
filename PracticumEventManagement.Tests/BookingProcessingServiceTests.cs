@@ -1,90 +1,91 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using PracticumEventManagement.BackgroundServices;
 using PracticumEventManagement.Dtos;
 using PracticumEventManagement.Models;
 using PracticumEventManagement.Services;
+using PracticumEventManagement.Tests.Infrastructure;
 
 namespace PracticumEventManagement.Tests;
 
 public class BookingProcessingServiceTests
 {
     [Fact]
-    public async Task Processing_ShouldRejectBooking_WhenEventWasDeleted()
+    public async Task Processing_ShouldConfirmPendingBooking_WhenEventExists()
     {
-        // Arrange
-        var eventService = new EventService();
-        var bookingService = new BookingService(eventService);
+        // Arrange: create an event and a pending booking in one scope.
+        using var provider = TestDbFactory.CreateProvider();
+        Guid bookingId;
+        Guid eventId;
 
-        var eventItem = eventService.Create(new Event("Deleted event")
+        using (var scope = provider.CreateScope())
         {
-            Description = "Test event",
-            StartAt = DateTime.UtcNow.AddDays(1),
-            EndAt = DateTime.UtcNow.AddDays(2),
-            TotalSeats = 1
-        });
+            var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
+            var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
 
-        var booking =
-            await bookingService.CreateBookingAsync(eventItem.Id);
+            var eventItem = await eventService.CreateAsync(new Event("Test event")
+            {
+                Description = "Test description",
+                StartAt = DateTime.UtcNow.AddDays(1),
+                EndAt = DateTime.UtcNow.AddDays(2),
+                TotalSeats = 1
+            });
 
-        eventService.Delete(eventItem.Id);
+            eventId = eventItem.Id;
+            var booking = await bookingService.CreateBookingAsync(eventId);
+            bookingId = booking.Id;
+        }
 
+        var scopeFactory = provider.GetRequiredService<IServiceScopeFactory>();
         var service = new TestBookingProcessingService(
-            bookingService,
-            eventService,
+            scopeFactory,
             NullLogger<BookingProcessingService>.Instance);
 
-        using var cancellationTokenSource =
-            new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+        var executionTask = service.RunAsync(cancellation.Token);
 
-        // Act
-        var executionTask =
-            service.RunAsync(cancellationTokenSource.Token);
-
-        BookingInfo bookingInfo;
-
-        do
+        try
         {
-            await Task.Delay(100);
+            // Act: read each status from a *new* scope, not from a tracked entity.
+            BookingInfo current;
+            do
+            {
+                await Task.Delay(100);
+                using var checkScope = provider.CreateScope();
+                var bookingService = checkScope.ServiceProvider
+                    .GetRequiredService<IBookingService>();
+                current = await bookingService.GetBookingByIdAsync(bookingId);
+            }
+            while (current.Status == BookingStatus.Pending &&
+                   !cancellation.IsCancellationRequested);
 
-            bookingInfo =
-                await bookingService.GetBookingByIdAsync(
-                    booking.Id);
+            // Assert
+            Assert.Equal(BookingStatus.Confirmed, current.Status);
+            Assert.NotNull(current.ProcessedAt);
+
+            using var eventScope = provider.CreateScope();
+            var eventService = eventScope.ServiceProvider.GetRequiredService<IEventService>();
+            var storedEvent = await eventService.GetByIdAsync(eventId);
+            Assert.Equal(0, storedEvent.AvailableSeats);
         }
-        while (
-            bookingInfo.Status == BookingStatus.Pending &&
-            !cancellationTokenSource.IsCancellationRequested);
-
-        cancellationTokenSource.Cancel();
-
-        await executionTask;
-
-        // Assert
-        Assert.Equal(
-            BookingStatus.Rejected,
-            bookingInfo.Status);
-
-        Assert.NotNull(bookingInfo.ProcessedAt);
+        finally
+        {
+            cancellation.Cancel();
+            await executionTask;
+        }
     }
 
-    private sealed class TestBookingProcessingService
-        : BookingProcessingService
+    private sealed class TestBookingProcessingService : BookingProcessingService
     {
         public TestBookingProcessingService(
-            IBookingService bookingService,
-            IEventService eventService,
+            IServiceScopeFactory scopeFactory,
             ILogger<BookingProcessingService> logger)
-            : base(
-                bookingService,
-                eventService,
-                logger)
+            : base(scopeFactory, logger)
         {
         }
 
-        public Task RunAsync(
-            CancellationToken cancellationToken)
-        {
-            return ExecuteAsync(cancellationToken);
-        }
+        public Task RunAsync(CancellationToken cancellationToken)
+            => ExecuteAsync(cancellationToken);
     }
 }
