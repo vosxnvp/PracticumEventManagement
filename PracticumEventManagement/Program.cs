@@ -44,6 +44,13 @@ builder.Services.AddHostedService<BookingProcessingService>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var context = scope.ServiceProvider
+        .GetRequiredService<AppDbContext>();
+
+    await context.Database.EnsureCreatedAsync();
+}
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
