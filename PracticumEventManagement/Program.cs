@@ -4,6 +4,8 @@ using PracticumEventManagement.Services;
 using PracticumEventManagement.BackgroundServices;
 using Microsoft.EntityFrameworkCore;
 using PracticumEventManagement.DataAccess;
+using System.Text.Json.Serialization;
+using PracticumEventManagement.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration
@@ -18,6 +20,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services
     .AddControllers()
+     .AddJsonOptions(options =>
+     {
+         options.JsonSerializerOptions.Converters.Add(
+             new JsonStringEnumConverter<BookingStatus>());
+     })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
