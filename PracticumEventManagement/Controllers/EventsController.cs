@@ -19,6 +19,8 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(PaginatedResult<Event>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PaginatedResult<Event>>> GetAll(
         [FromQuery] string? title,
         [FromQuery] DateTime? from,
@@ -34,6 +36,8 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(Event), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Event>> GetById(
         Guid id,
         CancellationToken cancellationToken)
@@ -43,6 +47,8 @@ public class EventsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(Event), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Event>> Create(
         CreateEventRequest request,
         CancellationToken cancellationToken)
@@ -61,6 +67,8 @@ public class EventsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/book")]
+    [ProducesResponseType(typeof(BookingInfo), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BookingInfo>> Book(Guid id)
     {
@@ -69,6 +77,9 @@ public class EventsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(
         Guid id,
         UpdateEventRequest request,
@@ -86,6 +97,8 @@ public class EventsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(
         Guid id,
         CancellationToken cancellationToken)

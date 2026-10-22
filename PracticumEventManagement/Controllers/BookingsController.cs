@@ -16,6 +16,8 @@ public class BookingsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(BookingInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookingInfo>> GetById(Guid id)
     {
         var booking = await _bookingService.GetBookingByIdAsync(id);
