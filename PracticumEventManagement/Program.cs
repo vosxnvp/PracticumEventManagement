@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using PracticumEventManagement.Models;
 using PracticumEventManagement.DataAccess.Repositories;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration
@@ -63,7 +64,8 @@ await using (var scope = app.Services.CreateAsyncScope())
     var context = scope.ServiceProvider
         .GetRequiredService<AppDbContext>();
 
-    await context.Database.EnsureCreatedAsync();
+
+    await context.Database.MigrateAsync();
 }
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 // Configure the HTTP request pipeline.
