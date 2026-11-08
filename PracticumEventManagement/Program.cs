@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using PracticumEventManagement.DataAccess;
 using System.Text.Json.Serialization;
 using PracticumEventManagement.Models;
+using PracticumEventManagement.DataAccess.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration
@@ -44,8 +46,13 @@ builder.Services
             return new BadRequestObjectResult(problemDetails);
         };
     });
+
+builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+
 builder.Services.AddHostedService<BookingProcessingService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
