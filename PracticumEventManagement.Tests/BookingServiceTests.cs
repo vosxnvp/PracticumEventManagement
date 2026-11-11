@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using PracticumEventManagement.DataAccess;
 using PracticumEventManagement.Exceptions;
-using PracticumEventManagement.Tests.Infrastructure;
 using PracticumEventManagement.Models;
 using PracticumEventManagement.Services;
+using PracticumEventManagement.Tests.Infrastructure;
 
 namespace PracticumEventManagement.Tests;
 
@@ -397,58 +398,84 @@ public class BookingServiceTests
         Assert.Equal(0, await GetAvailableSeatsAsync(provider, eventItem.Id));
     }
     [Fact]
+
     public async Task RejectAndReleaseSeats_ShouldRestoreAvailableSeats()
     {
         // Arrange
         using var provider = TestDbFactory.CreateProvider();
         using var scope = provider.CreateScope();
-        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
-        var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
 
-        var eventItem = await CreateTestEventAsync(eventService, totalSeats: 1);
+        var eventService = scope.ServiceProvider
+            .GetRequiredService<IEventService>();
 
-        var booking =
-            await bookingService.CreateBookingAsync(eventItem.Id);
+        var bookingService = scope.ServiceProvider
+            .GetRequiredService<IBookingService>();
 
-        Assert.Equal(0, await GetAvailableSeatsAsync(provider, eventItem.Id));
+        var eventItem = await CreateTestEventAsync(
+            eventService,
+            totalSeats: 1);
+
+        var booking = await bookingService
+            .CreateBookingAsync(eventItem.Id);
+
+        Assert.Equal(
+            0,
+            await GetAvailableSeatsAsync(provider, eventItem.Id));
 
         // Act
         await bookingService.RejectBookingAsync(booking.Id);
-        await ReleaseSeatsAsync(provider, eventItem.Id);
 
         // Assert
-        Assert.Equal(1, await GetAvailableSeatsAsync(provider, eventItem.Id));
+        var updatedBooking = await bookingService
+            .GetBookingByIdAsync(booking.Id);
+
+        Assert.Equal(
+            BookingStatus.Rejected,
+            updatedBooking.Status);
+
+        Assert.Equal(
+            1,
+            await GetAvailableSeatsAsync(provider, eventItem.Id));
     }
+
     [Fact]
-    public async Task RejectAndReleaseSeats_ShouldAllowNewBooking()
+    public async Task RejectBookingAsync_ShouldNotReleaseSeatsTwice()
     {
         // Arrange
         using var provider = TestDbFactory.CreateProvider();
         using var scope = provider.CreateScope();
-        var eventService = scope.ServiceProvider.GetRequiredService<IEventService>();
-        var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
 
-        var eventItem = await CreateTestEventAsync(eventService, totalSeats: 1);
+        var eventService = scope.ServiceProvider
+            .GetRequiredService<IEventService>();
 
-        var firstBooking =
-            await bookingService.CreateBookingAsync(eventItem.Id);
-
-        await bookingService.RejectBookingAsync(firstBooking.Id);
-        await ReleaseSeatsAsync(provider, eventItem.Id);
-
-        // Act: the first scope has a tracked copy with the old seat count.
-        // Use a fresh scope after changing the event in another DbContext.
-        using var newBookingScope = provider.CreateScope();
-        var newBookingService = newBookingScope.ServiceProvider
+        var bookingService = scope.ServiceProvider
             .GetRequiredService<IBookingService>();
-        var secondBooking =
-            await newBookingService.CreateBookingAsync(eventItem.Id);
+
+        var eventItem = await CreateTestEventAsync(
+            eventService,
+            totalSeats: 1);
+
+        var booking = await bookingService
+            .CreateBookingAsync(eventItem.Id);
+
+        // Act
+        await bookingService.RejectBookingAsync(booking.Id);
+        await bookingService.RejectBookingAsync(booking.Id);
 
         // Assert
-        Assert.NotEqual(firstBooking.Id, secondBooking.Id);
-        Assert.Equal(BookingStatus.Pending, secondBooking.Status);
-        Assert.Equal(0, await GetAvailableSeatsAsync(provider, eventItem.Id));
+        var updatedBooking = await bookingService
+            .GetBookingByIdAsync(booking.Id);
+
+        Assert.Equal(
+            BookingStatus.Rejected,
+            updatedBooking.Status);
+
+        Assert.Equal(
+            1,
+            await GetAvailableSeatsAsync(provider, eventItem.Id));
     }
+
+    
 
     [Fact]
     public async Task CreateBookingAsync_ShouldPreventOverbooking_WhenRequestsAreConcurrent()
@@ -530,13 +557,59 @@ public class BookingServiceTests
         return eventItem.AvailableSeats;
     }
 
-    private static async Task ReleaseSeatsAsync(
-        IServiceProvider provider, Guid eventId)
+
+    [Fact]
+    public async Task RejectAndReleaseSeats_ShouldAllowNewBooking()
     {
+        // Arrange
+        using var provider = TestDbFactory.CreateProvider();
         using var scope = provider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var eventItem = await context.Events.SingleAsync(e => e.Id == eventId);
-        eventItem.ReleaseSeats();
-        await context.SaveChangesAsync();
+
+        var eventService = scope.ServiceProvider
+            .GetRequiredService<IEventService>();
+
+        var bookingService = scope.ServiceProvider
+            .GetRequiredService<IBookingService>();
+
+        var eventItem = await CreateTestEventAsync(
+            eventService,
+            totalSeats: 1);
+
+        Assert.Equal(
+            1,
+            await GetAvailableSeatsAsync(provider, eventItem.Id));
+
+        var firstBooking = await bookingService
+            .CreateBookingAsync(eventItem.Id);
+
+        Assert.Equal(
+            0,
+            await GetAvailableSeatsAsync(provider, eventItem.Id));
+
+        // Act: reject the first booking.
+        await bookingService.RejectBookingAsync(firstBooking.Id);
+
+        Assert.Equal(
+            1,
+            await GetAvailableSeatsAsync(provider, eventItem.Id));
+
+        // Create a new scope to avoid using previously tracked entities.
+        using var newBookingScope = provider.CreateScope();
+
+        var newBookingService = newBookingScope.ServiceProvider
+            .GetRequiredService<IBookingService>();
+
+        var secondBooking = await newBookingService
+            .CreateBookingAsync(eventItem.Id);
+
+        // Assert
+        Assert.NotEqual(firstBooking.Id, secondBooking.Id);
+        Assert.Equal(BookingStatus.Pending, secondBooking.Status);
+
+        Assert.Equal(
+            0,
+            await GetAvailableSeatsAsync(provider, eventItem.Id));
     }
+
+
 }

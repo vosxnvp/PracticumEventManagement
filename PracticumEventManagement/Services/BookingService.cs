@@ -87,14 +87,30 @@ public class BookingService : IBookingService
         await _bookingRepository.SaveChangesAsync();
     }
 
+
     public async Task RejectBookingAsync(Guid bookingId)
     {
         var booking = await GetTrackedBookingAsync(bookingId);
 
+        if (booking.Status != BookingStatus.Pending)
+        {
+            return;
+        }
+
+        var eventItem = await _eventRepository
+            .GetTrackedByIdAsync(booking.EventId);
+
         booking.Reject();
 
+        if (eventItem is not null)
+        {
+            eventItem.ReleaseSeats();
+        }
+
+        // Both entities are saved through one scoped DbContext.
         await _bookingRepository.SaveChangesAsync();
     }
+
 
     private async Task<Booking> GetTrackedBookingAsync(Guid bookingId)
     {
