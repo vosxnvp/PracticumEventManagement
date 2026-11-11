@@ -543,3 +543,114 @@ docker compose exec postgres psql -U postgres -d eventapi -c "SELECT (SELECT COU
 4. При исчерпании мест следующая попытка бронирования возвращает `409 Conflict`, лишняя запись не создаётся.
 5. После перезапуска API события и бронирования остаются доступными.
 6. `DELETE /events/{id}` возвращает `204 No Content`, после чего запросы удалённого события и связанных броней возвращают `404 Not Found`, а в PostgreSQL обеих записей больше нет.
+
+## Работа с базой данных
+
+Приложение использует PostgreSQL 16 и Entity Framework Core 10.
+
+Для доступа к данным реализован паттерн Repository:
+
+- `IEventRepository` / `EventRepository` — операции с мероприятиями, фильтрация и пагинация.
+- `IBookingRepository` / `BookingRepository` — операции с бронированиями.
+
+Репозитории зарегистрированы в DI-контейнере с временем жизни `Scoped`. Сервисы работают через интерфейсы репозиториев и не обращаются к `AppDbContext` напрямую.
+
+### Миграции EF Core
+
+Схема базы данных управляется миграциями Entity Framework Core.
+
+Начальная миграция `InitialCreate` создаёт таблицы:
+
+- `events` — мероприятия.
+- `bookings` — бронирования.
+
+Между таблицами настроена связь по внешнему ключу `bookings.event_id → events.id` с каскадным удалением.
+
+При запуске приложения миграции автоматически применяются через `Database.MigrateAsync()`.
+
+Для работы с миграциями требуется инструмент `dotnet-ef` версии 10.0.13:
+
+```bash
+dotnet tool install --global dotnet-ef --version 10.0.13
+```
+
+Создание новой миграции из корня решения:
+
+```bash
+dotnet ef migrations add MigrationName --project PracticumEventManagement --startup-project PracticumEventManagement --context AppDbContext --output-dir DataAccess/Migrations
+```
+
+Ручное применение миграций:
+
+```bash
+dotnet ef database update --project PracticumEventManagement --startup-project PracticumEventManagement --context AppDbContext
+```
+
+Просмотр списка миграций:
+
+```bash
+dotnet ef migrations list --project PracticumEventManagement --startup-project PracticumEventManagement --context AppDbContext
+```
+
+Приложение использует `MigrateAsync()` вместо `EnsureCreatedAsync()`, что позволяет управлять дальнейшими изменениями схемы через миграции.
+
+## Интеграционные тесты
+
+Для проверки слоя доступа к данным используется отдельный проект `PracticumEventManagement.IntegrationTests`.
+
+Интеграционные тесты написаны с использованием:
+
+- xUnit;
+- Testcontainers.PostgreSql;
+- Entity Framework Core;
+- PostgreSQL 16.
+
+### Подготовка окружения
+
+Для запуска интеграционных тестов необходим установленный и запущенный Docker Desktop либо совместимый Docker Engine.
+
+Testcontainers автоматически создаёт отдельный контейнер PostgreSQL с динамическим портом. Строка подключения получается через `GetConnectionString()` — фиксированный порт не используется.
+
+Тестовая база данных изолирована от локальной базы разработки.
+
+### Изоляция тестов
+
+Для управления контейнером используется `PostgreSqlFixture`, реализующий `IAsyncLifetime`.
+
+Все интеграционные тесты объединены в общую xUnit-коллекцию `PostgreSQL`, чтобы исключить параллельное выполнение тестов, использующих одну базу.
+
+Перед каждым тестом база приводится к чистому состоянию с помощью `EnsureDeletedAsync()`, после чего схема создаётся через `MigrateAsync()`.
+
+Таким образом, тесты не зависят от порядка выполнения.
+
+### Покрытие тестами
+
+Интеграционные тесты проверяют:
+
+- применение миграции `InitialCreate`;
+- наличие таблиц и внешнего ключа;
+- CRUD-операции репозитория мероприятий;
+- фильтрацию, сортировку и пагинацию мероприятий;
+- создание, получение, обновление и удаление бронирований;
+- получение ожидающих бронирований;
+- ограничения внешнего ключа PostgreSQL;
+- каскадное удаление бронирований при удалении мероприятия;
+- работу `AsNoTracking()`.
+
+### Запуск тестов
+
+Запуск всех тестов из корня решения:
+
+```bash
+dotnet test
+```
+
+Запуск только интеграционных тестов:
+
+```bash
+dotnet test PracticumEventManagement.IntegrationTests
+```
+
+При запуске интеграционных тестов PostgreSQL-контейнер создаётся автоматически и удаляется после завершения тестирования.
+
+На момент завершения шестого спринта в проекте реализовано 60 тестов: 40 юнит-тестов и 20 интеграционных.
