@@ -50,12 +50,16 @@ public class EventRepository : IEventRepository
 
         if (from.HasValue)
         {
-            query = query.Where(e => e.StartAt >= from.Value);
+            var fromUtc = NormalizeToUtc(from.Value);
+
+            query = query.Where(e => e.StartAt >= fromUtc);
         }
 
         if (to.HasValue)
         {
-            query = query.Where(e => e.EndAt <= to.Value);
+            var toUtc = NormalizeToUtc(to.Value);
+
+            query = query.Where(e => e.EndAt <= toUtc);
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -92,5 +96,17 @@ public class EventRepository : IEventRepository
         CancellationToken cancellationToken = default)
     {
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static DateTime NormalizeToUtc(DateTime value)
+    {
+        return value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            DateTimeKind.Unspecified => DateTime.SpecifyKind(
+                value, DateTimeKind.Utc),
+            _ => throw new ArgumentOutOfRangeException(nameof(value))
+        };
     }
 }

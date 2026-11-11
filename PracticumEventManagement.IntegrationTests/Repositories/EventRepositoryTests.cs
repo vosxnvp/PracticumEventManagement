@@ -357,4 +357,24 @@ public class EventRepositoryTests : IAsyncLifetime
             context.Entry(eventItem).State);
     }
 
+    [Fact]
+    public async Task GetAllAsync_ShouldAcceptDateWithoutKind()
+    {
+        // Arrange
+        await SeedEventsAsync();
+
+        await using var context = _fixture.CreateDbContext();
+        var repository = new EventRepository(context);
+
+        var from = new DateTime(2027, 2, 1);
+
+        Assert.Equal(DateTimeKind.Unspecified, from.Kind);
+
+        // Act
+        var result = await repository.GetAllAsync(from: from);
+
+        // Assert
+        Assert.Equal(2, result.TotalCount);
+    }
+
 }
