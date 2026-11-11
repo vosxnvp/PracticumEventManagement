@@ -32,19 +32,20 @@ builder.Services
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-            var errorMessage = context.ModelState
-                .SelectMany(x => x.Value?.Errors ?? [])
-                .Select(x => x.ErrorMessage)
-                .FirstOrDefault();
-
-            var problemDetails = new ProblemDetails
+            var problemDetails = new ValidationProblemDetails(
+                context.ModelState)
             {
                 Status = StatusCodes.Status400BadRequest,
-                Title = "Validation error",
-                Detail = errorMessage ?? "Validation failed."
+                Title = "Validation error"
             };
 
-            return new BadRequestObjectResult(problemDetails);
+            return new BadRequestObjectResult(problemDetails)
+            {
+                ContentTypes =
+            {
+                "application/problem+json"
+            }
+            };
         };
     });
 
