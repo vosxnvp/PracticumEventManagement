@@ -475,7 +475,7 @@ public class BookingServiceTests
             await GetAvailableSeatsAsync(provider, eventItem.Id));
     }
 
-    
+
 
     [Fact]
     public async Task CreateBookingAsync_ShouldPreventOverbooking_WhenRequestsAreConcurrent()
