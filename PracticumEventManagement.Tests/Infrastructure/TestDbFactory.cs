@@ -2,6 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using PracticumEventManagement.DataAccess;
 using PracticumEventManagement.Services;
+using PracticumEventManagement.DataAccess.Repositories;
+
 
 namespace PracticumEventManagement.Tests.Infrastructure;
 
@@ -15,6 +17,8 @@ internal static class TestDbFactory
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase(dbName));
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
 

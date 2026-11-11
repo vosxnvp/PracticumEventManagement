@@ -1,5 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using PracticumEventManagement.DataAccess;
+﻿
+using PracticumEventManagement.DataAccess.Repositories;
 using PracticumEventManagement.Dtos;
 using PracticumEventManagement.Exceptions;
 using PracticumEventManagement.Models;
@@ -8,21 +8,20 @@ namespace PracticumEventManagement.Services;
 
 public class EventService : IEventService
 {
-    private readonly AppDbContext _context;
+    private readonly IEventRepository _eventRepository;
 
-    public EventService(AppDbContext context)
+    public EventService(IEventRepository eventRepository)
     {
-        _context = context;
+        _eventRepository = eventRepository;
     }
 
     public async Task<Event> GetByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        return await _context.Events
-            .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Event with id {id} was not found.");
+        return await _eventRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(
+                $"Event with id {id} was not found.");
     }
 
     public async Task<Event> CreateAsync(
@@ -31,19 +30,21 @@ public class EventService : IEventService
     {
         if (eventItem.EndAt <= eventItem.StartAt)
         {
-            throw new ValidationException("EndAt must be later than StartAt.");
+            throw new ValidationException(
+                "EndAt must be later than StartAt.");
         }
 
         if (eventItem.TotalSeats <= 0)
         {
-            throw new ValidationException("TotalSeats must be greater than zero.");
+            throw new ValidationException(
+                "TotalSeats must be greater than zero.");
         }
 
         eventItem.Id = Guid.NewGuid();
         eventItem.AvailableSeats = eventItem.TotalSeats;
 
-        _context.Events.Add(eventItem);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _eventRepository.AddAsync(eventItem, cancellationToken);
+        await _eventRepository.SaveChangesAsync(cancellationToken);
 
         return eventItem;
     }
@@ -53,13 +54,15 @@ public class EventService : IEventService
         Event eventItem,
         CancellationToken cancellationToken = default)
     {
-        var existingEvent = await _context.Events
-            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Event with id {id} was not found.");
+        var existingEvent = await _eventRepository
+            .GetTrackedByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(
+                $"Event with id {id} was not found.");
 
         if (eventItem.EndAt <= eventItem.StartAt)
         {
-            throw new ValidationException("EndAt must be later than StartAt.");
+            throw new ValidationException(
+                "EndAt must be later than StartAt.");
         }
 
         existingEvent.Title = eventItem.Title;
@@ -67,7 +70,8 @@ public class EventService : IEventService
         existingEvent.StartAt = eventItem.StartAt;
         existingEvent.EndAt = eventItem.EndAt;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _eventRepository.SaveChangesAsync(cancellationToken);
+
         return true;
     }
 
@@ -75,12 +79,14 @@ public class EventService : IEventService
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        var existingEvent = await _context.Events
-            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Event with id {id} was not found.");
+        var existingEvent = await _eventRepository
+            .GetTrackedByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException(
+                $"Event with id {id} was not found.");
 
-        _context.Events.Remove(existingEvent);
-        await _context.SaveChangesAsync(cancellationToken);
+        _eventRepository.Remove(existingEvent);
+        await _eventRepository.SaveChangesAsync(cancellationToken);
+
         return true;
     }
 
@@ -94,47 +100,22 @@ public class EventService : IEventService
     {
         if (page < 1)
         {
-            throw new ValidationException("page должен быть больше или равен 1");
+            throw new ValidationException(
+                "page должен быть больше или равен 1");
         }
 
         if (pageSize < 1)
         {
-            throw new ValidationException("pageSize должен быть больше или равен 1.");
+            throw new ValidationException(
+                "pageSize должен быть больше или равен 1.");
         }
 
-        IQueryable<Event> query = _context.Events.AsNoTracking();
-
-        if (!string.IsNullOrWhiteSpace(title))
-        {
-            var normalizedTitle = title.ToLower();
-            query = query.Where(e => e.Title.ToLower().Contains(normalizedTitle));
-        }
-
-        if (from.HasValue)
-        {
-            query = query.Where(e => e.StartAt >= from.Value);
-        }
-
-        if (to.HasValue)
-        {
-            query = query.Where(e => e.EndAt <= to.Value);
-        }
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var items = await query
-            .OrderBy(e => e.StartAt)
-            .ThenBy(e => e.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return new PaginatedResult<Event>
-        {
-            TotalCount = totalCount,
-            Items = items,
-            Page = page,
-            Count = items.Count
-        };
+        return await _eventRepository.GetAllAsync(
+            title,
+            from,
+            to,
+            page,
+            pageSize,
+            cancellationToken);
     }
 }

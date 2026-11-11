@@ -6,6 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using PracticumEventManagement.DataAccess;
 using System.Text.Json.Serialization;
 using PracticumEventManagement.Models;
+using PracticumEventManagement.DataAccess.Repositories;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration
@@ -29,23 +32,29 @@ builder.Services
     {
         options.InvalidModelStateResponseFactory = context =>
         {
-            var errorMessage = context.ModelState
-                .SelectMany(x => x.Value?.Errors ?? [])
-                .Select(x => x.ErrorMessage)
-                .FirstOrDefault();
-
-            var problemDetails = new ProblemDetails
+            var problemDetails = new ValidationProblemDetails(
+                context.ModelState)
             {
                 Status = StatusCodes.Status400BadRequest,
-                Title = "Validation error",
-                Detail = errorMessage ?? "Validation failed."
+                Title = "Validation error"
             };
 
-            return new BadRequestObjectResult(problemDetails);
+            return new BadRequestObjectResult(problemDetails)
+            {
+                ContentTypes =
+            {
+                "application/problem+json"
+            }
+            };
         };
     });
+
+builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+
 builder.Services.AddHostedService<BookingProcessingService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -56,7 +65,8 @@ await using (var scope = app.Services.CreateAsyncScope())
     var context = scope.ServiceProvider
         .GetRequiredService<AppDbContext>();
 
-    await context.Database.EnsureCreatedAsync();
+
+    await context.Database.MigrateAsync();
 }
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 // Configure the HTTP request pipeline.
