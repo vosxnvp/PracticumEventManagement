@@ -4,7 +4,7 @@
 
 Проект выполнен в рамках курса «Продвинутая разработка на C# и .NET».
 
-В проекте реализованы CRUD-операции для мероприятий, фильтрация и пагинация, создание и получение бронирований, ограничение количества мест, защита от овербукинга в рамках одного процесса, параллельная фоновая обработка заявок и глобальная обработка ошибок. Данные хранятся в PostgreSQL через Entity Framework Core; схема управляется миграциями, доступ к данным выделен в репозитории, а работа с PostgreSQL проверяется интеграционными тестами через Testcontainers.
+В проекте реализованы CRUD-операции для мероприятий, фильтрация и пагинация, создание и получение бронирований, ограничение количества мест, защита от овербукинга в рамках одного процесса, параллельная фоновая обработка заявок и глобальная обработка ошибок. Приложение разделено на **Domain, Application, Infrastructure и Presentation** по принципам Clean Architecture. Данные хранятся в PostgreSQL через Entity Framework Core; схема управляется миграциями, а работа с PostgreSQL проверяется интеграционными тестами через Testcontainers.
 
 ## Технологии
 
@@ -16,20 +16,48 @@
 - LINQ и асинхронные запросы к базе данных
 - `BackgroundService`, `IServiceScopeFactory`, `Task.WhenAll`
 - `SemaphoreSlim` для синхронизации бронирований внутри одного процесса
-- Паттерн Repository и внедрение зависимостей (DI)
+- Clean Architecture, паттерн Repository и внедрение зависимостей (DI)
 - Миграции EF Core (`MigrateAsync()`)
 - xUnit и EF Core InMemory для юнит-тестов
 - Testcontainers.PostgreSql и PostgreSQL для интеграционных тестов
 
 ## Структура solution
 
-Solution-файл `PracticumEventManagement.slnx` находится в корне репозитория и включает три проекта:
+Solution-файл `PracticumEventManagement.slnx` находится в корне репозитория и включает **шесть проектов**: четыре проекта приложения и два тестовых проекта.
 
-- `PracticumEventManagement` — Web API;
-- `PracticumEventManagement.Tests` — юнит-тесты;
-- `PracticumEventManagement.IntegrationTests` — интеграционные тесты с PostgreSQL и Testcontainers.
+```text
+PracticumEventManagement.Domain/             # Сущности, перечисления, доменные исключения
+PracticumEventManagement.Application/        # Сервисы, DTO, интерфейсы репозиториев
+PracticumEventManagement.Infrastructure/     # EF Core, PostgreSQL, репозитории, миграции
+PracticumEventManagement/                    # Presentation: ASP.NET Core Web API
+PracticumEventManagement.Tests/              # Модульные тесты, EF Core InMemory
+PracticumEventManagement.IntegrationTests/   # Интеграционные тесты, PostgreSQL, Testcontainers
+```
 
-Благодаря этому сборку и тесты можно запускать прямо из корня репозитория.
+## Архитектура Clean Architecture
+
+**Domain** (`PracticumEventManagement.Domain`) не зависит от других проектов решения. Содержит сущности `Event`, `Booking`, перечисление `BookingStatus`, доменные исключения и методы `TryReserveSeats()`, `ReleaseSeats()`, `Confirm()`, `Reject()`.
+
+**Application** (`PracticumEventManagement.Application`) зависит только от Domain. Содержит `EventService`, `BookingService`, `BookingProcessor`, контракты `IEventRepository`, `IBookingRepository`, `IBookingProcessor` и DTO для запросов/ответов (`CreateEventRequest`, `UpdateEventRequest`, `EventResponse`, `BookingInfo`, `PaginatedResult<T>`). Здесь находятся прикладные правила, но нет зависимостей от EF Core или PostgreSQL.
+
+**Infrastructure** (`PracticumEventManagement.Infrastructure`) зависит от Application и Domain. Реализует репозитории на EF Core, `AppDbContext`, конфигурации сущностей, миграции и регистрацию инфраструктурных сервисов.
+
+**Presentation** (`PracticumEventManagement`) — ASP.NET Core Web API. Зависит от Application и Infrastructure: содержит контроллеры, обработчик исключений, фоновый `BookingProcessingService` и точку сборки зависимостей (`Program.cs`). Контроллеры работают через сервисы Application, а в HTTP-ответах используется DTO вместо прямой сериализации графа доменных сущностей.
+
+Направления зависимостей между проектами:
+
+```text
+Presentation ------> Application ------> Domain
+       |                  ^
+       v                  |
+Infrastructure -----------+
+       |
+       +-------------------------------> Domain
+```
+
+`Program.cs` вызывает `AddApplicationServices()` и `AddInfrastructureServices(builder.Configuration)`. Прикладные сервисы и репозитории регистрируются как `Scoped`, а фоновый hosted service управляет собственными scope. Вызов миграций БД выполняется на старте приложения.
+
+Сборку и тесты можно запускать из корня репозитория.
 
 ## Запуск проекта
 
@@ -42,10 +70,10 @@ git clone https://github.com/vosxnvp/PracticumEventManagement.git
 cd PracticumEventManagement
 ```
 
-Для просмотра изменений шестого спринта до слияния Pull Request используйте ветку `sprint-6`:
+Для просмотра изменений седьмого спринта до слияния Pull Request используйте ветку `sprint-7`:
 
 ```bash
-git switch sprint-6
+git switch sprint-7
 ```
 
 Запустить PostgreSQL из корня репозитория (там расположен `docker-compose.yml`):
@@ -82,7 +110,14 @@ dotnet test
 dotnet run --project PracticumEventManagement/PracticumEventManagement.csproj
 ```
 
-В режиме Development Swagger UI доступен по адресу `http://localhost:5132/swagger` (точный адрес см. в выводе `dotnet run`).
+В режиме `Development` доступен Swagger UI. Адрес зависит от профиля запуска — проверьте его в выводе `dotnet run`. Например, для запуска через **Windows cmd** на фиксированном HTTP-порту:
+
+```bat
+set ASPNETCORE_ENVIRONMENT=Development
+dotnet run --project PracticumEventManagement --no-launch-profile --urls http://localhost:5080
+```
+
+Swagger UI в таком случае доступен по адресу `http://localhost:5080/swagger`. Для запуска с профилями из `launchSettings.json` URL может отличаться.
 
 **Создание и обновление схемы БД.** При запуске приложение вызывает `Database.MigrateAsync()` через `AppDbContext`: EF Core автоматически применяет ещё не выполненные миграции. Миграция `InitialCreate` создаёт таблицы `events`, `bookings`, внешний ключ и индекс по `event_id`. Применённые миграции отслеживаются в таблице `__EFMigrationsHistory`. При повторном запуске уже применённые миграции не выполняются заново. Подробнее — в разделе [«Миграции EF Core»](#миграции-ef-core).
 
@@ -96,7 +131,7 @@ docker compose down
 
 ## Модель мероприятия
 
-Модель `Event` содержит:
+Доменная сущность `Event` (проект `PracticumEventManagement.Domain`) содержит:
 
 - `Id` (`Guid`) — уникальный идентификатор мероприятия;
 - `Title` (`string`) — название;
@@ -110,7 +145,7 @@ docker compose down
 
 Значение `TotalSeats` обязательно и должно быть больше нуля. Для `StartAt` и `EndAt` при создании и обновлении мероприятий рекомендуется передавать UTC-время (суффикс `Z`), поскольку PostgreSQL хранит даты в столбцах `timestamp with time zone`.
 
-Модель также содержит методы:
+Доменная сущность также содержит методы:
 
 - `TryReserveSeats(int count = 1)` — пытается зарезервировать указанное количество мест и возвращает `false`, если свободных мест недостаточно;
 - `ReleaseSeats(int count = 1)` — возвращает места в пул доступных.
@@ -122,6 +157,8 @@ docker compose down
 ```http
 GET /events
 ```
+
+Метод возвращает `PaginatedResult<EventResponse>`: элементы `items` содержат поля мероприятия без навигационного свойства `Bookings`.
 
 Метод поддерживает фильтрацию и пагинацию с помощью query-параметров:
 
@@ -136,7 +173,7 @@ GET /events
 Пример:
 
 ```http
-GET /events?title=conference&from=2026-11-01T00:00:00Z&to=2026-11-30T23:59:59Z&page=1&pageSize=5
+GET /events?title=conference&from=2027-03-01T00:00:00Z&to=2027-03-31T23:59:59Z&page=1&pageSize=5
 ```
 
 Пример ответа:
@@ -149,8 +186,8 @@ GET /events?title=conference&from=2026-11-01T00:00:00Z&to=2026-11-30T23:59:59Z&p
       "id": "9f54215f-9acd-4bd8-9efc-c604d098a8fb",
       "title": "CSharp Conference",
       "description": "Конференция по C# и .NET",
-      "startAt": "2026-11-10T10:00:00Z",
-      "endAt": "2026-11-10T18:00:00Z",
+      "startAt": "2027-03-10T10:00:00Z",
+      "endAt": "2027-03-10T18:00:00Z",
       "totalSeats": 100,
       "availableSeats": 100
     }
@@ -165,6 +202,8 @@ GET /events?title=conference&from=2026-11-01T00:00:00Z&to=2026-11-30T23:59:59Z&p
 ```http
 GET /events/{id}
 ```
+
+При успешном запросе возвращается `200 OK` с объектом `EventResponse` (`id`, `title`, `description`, `startAt`, `endAt`, `totalSeats`, `availableSeats`), без списка связанных бронирований.
 
 Если мероприятие не найдено, возвращается:
 
@@ -184,13 +223,13 @@ POST /events
 {
   "title": "Встреча команды",
   "description": "Обсуждение проекта",
-  "startAt": "2026-11-10T10:00:00Z",
-  "endAt": "2026-11-10T11:00:00Z",
+  "startAt": "2027-03-10T10:00:00Z",
+  "endAt": "2027-03-10T11:00:00Z",
   "totalSeats": 10
 }
 ```
 
-При успешном создании возвращается:
+При успешном создании возвращается `201 Created`, заголовок `Location` со ссылкой на созданное мероприятие и тело типа `EventResponse`:
 
 ```text
 201 Created
@@ -203,8 +242,8 @@ POST /events
   "id": "55c619ec-971c-4157-bf05-17d86671417f",
   "title": "Встреча команды",
   "description": "Обсуждение проекта",
-  "startAt": "2026-11-10T10:00:00Z",
-  "endAt": "2026-11-10T11:00:00Z",
+  "startAt": "2027-03-10T10:00:00Z",
+  "endAt": "2027-03-10T11:00:00Z",
   "totalSeats": 10,
   "availableSeats": 10
 }
@@ -222,8 +261,8 @@ PUT /events/{id}
 {
   "title": "Обновлённая встреча",
   "description": "Обновлённое описание",
-  "startAt": "2026-11-10T12:00:00Z",
-  "endAt": "2026-11-10T13:00:00Z"
+  "startAt": "2027-03-10T12:00:00Z",
+  "endAt": "2027-03-10T13:00:00Z"
 }
 ```
 
@@ -259,7 +298,7 @@ DELETE /events/{id}
 
 ## Бронирования
 
-Модель `Booking` содержит:
+Доменная сущность `Booking` содержит:
 
 - `Id` (`Guid`) — уникальный идентификатор бронирования;
 - `EventId` (`Guid`) — идентификатор мероприятия;
@@ -290,7 +329,7 @@ POST /events/{id}/book
 - создаётся бронирование со статусом `Pending`;
 - API сразу возвращает `202 Accepted`.
 
-В теле ответа возвращается созданное бронирование, а в заголовке `Location` — ссылка на ресурс:
+В теле ответа возвращается DTO `BookingInfo`, а в заголовке `Location` — ссылка на ресурс:
 
 ```text
 Location: /bookings/{bookingId}
@@ -372,16 +411,14 @@ GET /bookings/{id}
 
 ## Параллельная фоновая обработка бронирований
 
-Обработка выполняется `BookingProcessingService` на базе `BackgroundService`. Сервис раз в секунду получает из PostgreSQL идентификаторы бронирований в состоянии `Pending` и запускает обработку параллельно через `Task.WhenAll`.
+Обработка разделена между **Presentation** и **Application**:
 
-`BackgroundService` — singleton, а репозитории и `AppDbContext` — scoped-зависимости. Поэтому сервис получает `IServiceScopeFactory` и создаёт отдельные DI-scope:
+- `BookingProcessingService` в Presentation наследуется от `BackgroundService`, раз в секунду получает идентификаторы `Pending`-бронирований и запускает параллельные задачи через `Task.WhenAll`. Перед обработкой каждой брони выполняется задержка около двух секунд.
+- `IBookingProcessor` и `BookingProcessor` в Application содержат прикладную логику. Методы `GetPendingIdsAsync()`, `ProcessAsync()` и `RejectAfterErrorAsync()` работают через `IBookingRepository` и `IEventRepository` — без прямой зависимости от `AppDbContext`.
 
-1. для получения списка идентификаторов `Pending` (после чтения scope закрывается);
-2. для обработки каждой брони после имитации внешнего вызова с задержкой около двух секунд — каждый параллельный обработчик получает свои scoped-репозитории и `AppDbContext`.
+`BackgroundService` — singleton, а `BookingProcessor`, репозитории и `AppDbContext` — scoped-зависимости. Поэтому hosted service получает `IServiceScopeFactory` и создаёт отдельный scope для чтения списка бронирований и отдельный scope на каждую параллельную обработку. При ошибке используется свежий scope для попытки восстановления.
 
-Если бронь всё ещё имеет статус `Pending`, фоновый обработчик проверяет наличие мероприятия и переводит бронь в `Confirmed` (либо в `Rejected`, если мероприятие не найдено), устанавливает `ProcessedAt` и вызывает `SaveChangesAsync()`.
-
-При непредвиденной ошибке предусмотрена попытка отклонить бронь и восстановить зарезервированное место, если событие существует. Отмена работы поддерживается через `CancellationToken`.
+Если бронь всё ещё находится в `Pending`, `BookingProcessor` проверяет наличие мероприятия и переводит бронь в `Confirmed` либо `Rejected`, заполняя `ProcessedAt`, после чего сохраняет изменения. При непредвиденной ошибке повторная операция пытается отклонить бронь и освободить место, если событие существует. Отмена работы поддерживается через `CancellationToken`.
 
 **Каскадное удаление:** внешний ключ `bookings.event_id` настроен с `ON DELETE CASCADE`. При удалении мероприятия PostgreSQL удаляет связанные бронирования; они не остаются в состоянии `Rejected`.
 
@@ -480,7 +517,7 @@ GET /bookings/{id}
 
 ## Тесты
 
-Бизнес-логика покрыта юнит-тестами на xUnit и EF Core InMemory; каждый тест получает изолированную базу с уникальным именем, а параллельные запросы используют отдельные DI-scope. Отдельный проект интеграционных тестов проверяет доступ к данным и миграции на реальной PostgreSQL через Testcontainers. Последний проверенный полный запуск `dotnet test` — **62 успешных теста**.
+Бизнес-логика покрыта юнит-тестами на xUnit и EF Core InMemory; каждый тест получает изолированную базу с уникальным именем, а параллельные запросы используют отдельные DI-scope. Отдельный проект интеграционных тестов проверяет доступ к данным и миграции на реальной PostgreSQL через Testcontainers. Последний проверенный полный запуск `dotnet test` — **66 успешных тестов**.
 
 Тесты `EventService` проверяют:
 
@@ -512,6 +549,8 @@ GET /bookings/{id}
 - защиту от овербукинга при `20` конкурентных запросах к мероприятию на `5` мест: ровно `5` успешных бронирований и `15` отказов;
 - уникальность `Id` при `10` конкурентных запросах к мероприятию на `10` мест.
 
+Тесты `BookingProcessor` отдельно от фонового hosted service проверяют подтверждение брони при существующем событии, отклонение при отсутствии события, пропуск уже обработанной брони, а также отклонение и освобождение места при восстановлении после ошибки. Тест `BookingProcessingServiceTests` проверяет выполнение фонового цикла.
+
 Конкурентные юнит-тесты используют `Task.Run` и `Task.WhenAll` с отдельным scope и `AppDbContext` для каждого запроса. Дополнительно проверяется работа контекста и связанных сущностей между разными scope. EF Core InMemory не проверяет реальные ограничения PostgreSQL и особенности SQL — для этого используются интеграционные тесты на PostgreSQL.
 
 Для запуска всех тестов из корня репозитория:
@@ -524,7 +563,7 @@ dotnet test
 
 Основное хранилище — **PostgreSQL**, а не память процесса ASP.NET Core. Сервисы `EventService` и `BookingService` используют интерфейсы `IEventRepository` и `IBookingRepository`. Запросы EF Core и работа с `AppDbContext` инкапсулированы в `EventRepository` и `BookingRepository`.
 
-Конфигурации `EventConfiguration` и `BookingConfiguration` в `DataAccess/Configurations` настраивают таблицы `events` и `bookings`, типы столбцов, первичные ключи (`Guid` генерируется приложением), строковое хранение `BookingStatus` и обязательную связь с каскадным удалением.
+Конфигурации `EventConfiguration` и `BookingConfiguration` в `PracticumEventManagement.Infrastructure/DataAccess/Configurations` настраивают таблицы `events` и `bookings`, типы столбцов, первичные ключи (`Guid` генерируется приложением), строковое хранение `BookingStatus` и обязательную связь с каскадным удалением.
 
 Данные остаются доступными после перезапуска API и остановки/повторного запуска контейнера PostgreSQL без удаления именованного тома.
 
@@ -553,16 +592,16 @@ docker compose exec postgres psql -U postgres -d eventapi -c "SELECT (SELECT COU
 
 Приложение использует PostgreSQL 16 и Entity Framework Core 10.
 
-Для доступа к данным реализован паттерн Repository:
+Для доступа к данным реализован паттерн Repository. Интерфейсы находятся в Application, а их реализации — в Infrastructure:
 
-- `IEventRepository` / `EventRepository` — операции с мероприятиями, фильтрация и пагинация.
-- `IBookingRepository` / `BookingRepository` — операции с бронированиями.
+- `IEventRepository` (Application) / `EventRepository` (Infrastructure) — операции с мероприятиями, фильтрация и пагинация.
+- `IBookingRepository` (Application) / `BookingRepository` (Infrastructure) — операции с бронированиями.
 
 Репозитории зарегистрированы в DI-контейнере с временем жизни `Scoped`. Сервисы работают через интерфейсы репозиториев и не обращаются к `AppDbContext` напрямую.
 
 ### Миграции EF Core
 
-Схема базы данных управляется миграциями Entity Framework Core.
+Схема базы данных управляется миграциями Entity Framework Core. `AppDbContext`, начальная миграция `InitialCreate` и `AppDbContextModelSnapshot` находятся в `PracticumEventManagement.Infrastructure/DataAccess`. Проект `PracticumEventManagement` используется как startup-проект для конфигурации и DI.
 
 Начальная миграция `InitialCreate` создаёт таблицы:
 
@@ -573,7 +612,7 @@ docker compose exec postgres psql -U postgres -d eventapi -c "SELECT (SELECT COU
 
 При запуске приложения миграции автоматически применяются через `Database.MigrateAsync()`.
 
-Для работы с миграциями требуется инструмент `dotnet-ef` версии 10.0.13:
+Для работы с миграциями установите `dotnet-ef` версии, совместимой с EF Core 10 (например, 10.0.13):
 
 ```bash
 dotnet tool install --global dotnet-ef --version 10.0.13
@@ -582,19 +621,19 @@ dotnet tool install --global dotnet-ef --version 10.0.13
 Создание новой миграции из корня решения:
 
 ```bash
-dotnet ef migrations add MigrationName --project PracticumEventManagement --startup-project PracticumEventManagement --context AppDbContext --output-dir DataAccess/Migrations
+dotnet ef migrations add MigrationName --project PracticumEventManagement.Infrastructure --startup-project PracticumEventManagement --context AppDbContext --output-dir DataAccess/Migrations
 ```
 
 Ручное применение миграций:
 
 ```bash
-dotnet ef database update --project PracticumEventManagement --startup-project PracticumEventManagement --context AppDbContext
+dotnet ef database update --project PracticumEventManagement.Infrastructure --startup-project PracticumEventManagement --context AppDbContext
 ```
 
 Просмотр списка миграций:
 
 ```bash
-dotnet ef migrations list --project PracticumEventManagement --startup-project PracticumEventManagement --context AppDbContext
+dotnet ef migrations list --project PracticumEventManagement.Infrastructure --startup-project PracticumEventManagement --context AppDbContext
 ```
 
 Приложение использует `MigrateAsync()` вместо `EnsureCreatedAsync()`, что позволяет управлять дальнейшими изменениями схемы через миграции.
@@ -658,4 +697,4 @@ dotnet test PracticumEventManagement.IntegrationTests
 
 При запуске интеграционных тестов PostgreSQL-контейнер создаётся автоматически и удаляется после завершения тестирования.
 
-По итогам исправлений после ревью полный запуск `dotnet test` успешно проходит **62 теста**. Проверки включают регрессионный тест дат без `DateTimeKind` и повторное отклонение бронирования без двойного возврата мест.
+После перехода на Clean Architecture полный запуск `dotnet test` успешно проходит **66 тестов** без ошибок. Проверки включают регрессионный тест дат без `DateTimeKind`, повторное отклонение бронирования без двойного возврата мест и четыре сценария нового `BookingProcessor`. Основные HTTP-сценарии и ошибки `400`, `404`, `409` дополнительно проверены вручную через Swagger.
