@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using PracticumEventManagement.Exceptions;
+using PracticumEventManagement.Domain.Exceptions;
 using PracticumEventManagement.Tests.Infrastructure;
-using PracticumEventManagement.Models;
-using PracticumEventManagement.Services;
+using PracticumEventManagement.Domain.Entities;
+using PracticumEventManagement.Application.Services;
 
 
 namespace PracticumEventManagement.Tests;

@@ -53,7 +53,7 @@ namespace PracticumEventManagement.Infrastructure.DataAccess.Migrations
                     b.ToTable("bookings", (string)null);
                 });
 
-            modelBuilder.Entity("PracticumEventManagement.Models.Event", b =>
+            modelBuilder.Entity("PracticumEventManagement.Domain.Entities.Event", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid")

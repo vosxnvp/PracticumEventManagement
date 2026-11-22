@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using PracticumEventManagement.DataAccess;
-using PracticumEventManagement.Models;
+using PracticumEventManagement.Infrastructure.DataAccess;
+using PracticumEventManagement.Domain.Entities;
 using PracticumEventManagement.Tests.Infrastructure;
+using PracticumEventManagement.Domain.Enums;
 
 namespace PracticumEventManagement.Tests;
 

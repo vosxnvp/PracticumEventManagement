@@ -21,6 +21,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PracticumEventManagement\PracticumEventManagement.csproj" />
+    <ProjectReference Include="..\PracticumEventManagement.Domain\PracticumEventManagement.Domain.csproj" />
+    <ProjectReference Include="..\PracticumEventManagement.Application\PracticumEventManagement.Application.csproj" />
+    <ProjectReference Include="..\PracticumEventManagement.Infrastructure\PracticumEventManagement.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
