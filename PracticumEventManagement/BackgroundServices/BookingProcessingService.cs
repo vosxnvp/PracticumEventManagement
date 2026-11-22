@@ -1,8 +1,4 @@
-﻿
-using Microsoft.Extensions.DependencyInjection;
-using PracticumEventManagement.Infrastructure.DataAccess;
-using PracticumEventManagement.Domain.Entities;
-using PracticumEventManagement.Domain.Enums;
+﻿using Microsoft.Extensions.DependencyInjection;
 using PracticumEventManagement.Application.Interfaces;
 
 namespace PracticumEventManagement.BackgroundServices;
@@ -73,11 +69,10 @@ public class BookingProcessingService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
 
-        var bookingRepository = scope.ServiceProvider
-            .GetRequiredService<IBookingRepository>();
+        var processor = scope.ServiceProvider
+            .GetRequiredService<IBookingProcessor>();
 
-        return await bookingRepository
-            .GetPendingIdsAsync(cancellationToken);
+        return await processor.GetPendingIdsAsync(cancellationToken);
     }
 
     private async Task ProcessBookingAsync(
@@ -94,47 +89,23 @@ public class BookingProcessingService : BackgroundService
                 ProcessingDelay,
                 cancellationToken);
 
-            // Each task gets its own scope and DbContext.
+            // Each booking gets its own scope and DbContext.
             using var scope = _scopeFactory.CreateScope();
 
-            var bookingRepository = scope.ServiceProvider
-                .GetRequiredService<IBookingRepository>();
+            var processor = scope.ServiceProvider
+                .GetRequiredService<IBookingProcessor>();
 
-            var eventRepository = scope.ServiceProvider
-                .GetRequiredService<IEventRepository>();
+            var status = await processor.ProcessAsync(
+                bookingId,
+                cancellationToken);
 
-            var booking = await bookingRepository
-                .GetTrackedByIdAsync(
+            if (status is not null)
+            {
+                _logger.LogInformation(
+                    "Booking {BookingId} processed with status {Status}",
                     bookingId,
-                    cancellationToken);
-
-            if (booking is null ||
-                booking.Status != BookingStatus.Pending)
-            {
-                return;
+                    status.Value);
             }
-
-            var eventItem = await eventRepository
-                .GetByIdAsync(
-                    booking.EventId,
-                    cancellationToken);
-
-            if (eventItem is not null)
-            {
-                booking.Confirm();
-            }
-            else
-            {
-                booking.Reject();
-            }
-
-            await bookingRepository
-                .SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Booking {BookingId} processed with status {Status}",
-                booking.Id,
-                booking.Status);
         }
         catch (OperationCanceledException)
             when (cancellationToken.IsCancellationRequested)
@@ -148,43 +119,17 @@ public class BookingProcessingService : BackgroundService
                 "Error while processing booking {BookingId}",
                 bookingId);
 
-            // Recover using a fresh scope.
+            // Recovery uses a fresh scope and DbContext.
             try
             {
                 using var scope = _scopeFactory.CreateScope();
 
-                var bookingRepository = scope.ServiceProvider
-                    .GetRequiredService<IBookingRepository>();
+                var processor = scope.ServiceProvider
+                    .GetRequiredService<IBookingProcessor>();
 
-                var eventRepository = scope.ServiceProvider
-                    .GetRequiredService<IEventRepository>();
-
-                var booking = await bookingRepository
-                    .GetTrackedByIdAsync(
-                        bookingId,
-                        cancellationToken);
-
-                if (booking is null ||
-                    booking.Status != BookingStatus.Pending)
-                {
-                    return;
-                }
-
-                var eventItem = await eventRepository
-                    .GetTrackedByIdAsync(
-                        booking.EventId,
-                        cancellationToken);
-
-                if (eventItem is not null)
-                {
-                    eventItem.ReleaseSeats();
-                }
-
-                booking.Reject();
-
-                // Both repositories share one scoped DbContext.
-                await bookingRepository
-                    .SaveChangesAsync(cancellationToken);
+                await processor.RejectAfterErrorAsync(
+                    bookingId,
+                    cancellationToken);
             }
             catch (OperationCanceledException)
                 when (cancellationToken.IsCancellationRequested)
