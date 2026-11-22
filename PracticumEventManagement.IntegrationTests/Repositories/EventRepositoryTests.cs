@@ -1,7 +1,6 @@
-﻿
-using PracticumEventManagement.DataAccess.Repositories;
+﻿using PracticumEventManagement.Infrastructure.DataAccess.Repositories;
 using PracticumEventManagement.IntegrationTests.Fixtures;
-using PracticumEventManagement.Models;
+using PracticumEventManagement.Domain.Entities;
 using Xunit;
 
 namespace PracticumEventManagement.IntegrationTests.Repositories;

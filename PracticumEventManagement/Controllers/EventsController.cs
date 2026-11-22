@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PracticumEventManagement.Dtos;
-using PracticumEventManagement.Models;
-using PracticumEventManagement.Services;
+using PracticumEventManagement.Application.Dtos;
+using PracticumEventManagement.Application.Services;
+using PracticumEventManagement.Domain.Entities;
 
 namespace PracticumEventManagement.Controllers;
 
@@ -19,7 +19,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(PaginatedResult<Event>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PaginatedResult<EventResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PaginatedResult<Event>>> GetAll(
         [FromQuery] string? title,
@@ -36,18 +36,21 @@ public class EventsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(Event), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<Event>> GetById(
-        Guid id,
-        CancellationToken cancellationToken)
+    public async Task<ActionResult<EventResponse>> GetById(
+    Guid id,
+    CancellationToken cancellationToken)
     {
-        var eventItem = await _eventService.GetByIdAsync(id, cancellationToken);
-        return Ok(eventItem);
+        var eventItem = await _eventService.GetByIdAsync(
+            id,
+            cancellationToken);
+
+        return Ok(EventResponse.FromEvent(eventItem));
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(Event), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(EventResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Event>> Create(
         CreateEventRequest request,
@@ -63,7 +66,10 @@ public class EventsController : ControllerBase
 
         var createdEvent = await _eventService.CreateAsync(eventItem, cancellationToken);
 
-        return CreatedAtAction(nameof(GetById), new { id = createdEvent.Id }, createdEvent);
+        return CreatedAtAction(
+    nameof(GetById),
+    new { id = createdEvent.Id },
+    EventResponse.FromEvent(createdEvent));
     }
 
     [HttpPost("{id:guid}/book")]

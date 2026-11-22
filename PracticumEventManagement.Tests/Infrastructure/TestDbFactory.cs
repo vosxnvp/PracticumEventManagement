@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using PracticumEventManagement.DataAccess;
-using PracticumEventManagement.Services;
-using PracticumEventManagement.DataAccess.Repositories;
-
+using PracticumEventManagement.Infrastructure.DataAccess;
+using PracticumEventManagement.Application.Services;
+using PracticumEventManagement.Application.Interfaces;
+using PracticumEventManagement.Infrastructure.DataAccess.Repositories;
 
 namespace PracticumEventManagement.Tests.Infrastructure;
 
@@ -16,12 +16,13 @@ internal static class TestDbFactory
         var services = new ServiceCollection();
 
         services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase(dbName));
+        options.UseInMemoryDatabase(dbName));
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IBookingRepository, BookingRepository>();
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IBookingService, BookingService>();
+		services.AddScoped<IBookingProcessor, BookingProcessor>();
 
-        return services.BuildServiceProvider(validateScopes: true);
+		return services.BuildServiceProvider(validateScopes: true);
     }
 }

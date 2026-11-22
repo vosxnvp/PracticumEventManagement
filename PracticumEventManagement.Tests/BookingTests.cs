@@ -1,4 +1,5 @@
-﻿using PracticumEventManagement.Models;
+﻿using PracticumEventManagement.Domain.Entities;
+using PracticumEventManagement.Domain.Enums;
 
 namespace PracticumEventManagement.Tests;
 

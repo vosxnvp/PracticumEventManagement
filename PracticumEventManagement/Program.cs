@@ -1,33 +1,27 @@
 using Microsoft.AspNetCore.Mvc;
-using PracticumEventManagement.Middleware;
-using PracticumEventManagement.Services;
-using PracticumEventManagement.BackgroundServices;
 using Microsoft.EntityFrameworkCore;
-using PracticumEventManagement.DataAccess;
+using PracticumEventManagement.Application;
+using PracticumEventManagement.BackgroundServices;
+using PracticumEventManagement.Domain.Enums;
+using PracticumEventManagement.Infrastructure;
+using PracticumEventManagement.Infrastructure.DataAccess;
+using PracticumEventManagement.Middleware;
 using System.Text.Json.Serialization;
-using PracticumEventManagement.Models;
-using PracticumEventManagement.DataAccess.Repositories;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration
-    .GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' was not found.");
+// Application и Infrastructure
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-// Add services to the container.
-
+// HTTP и JSON
 builder.Services
     .AddControllers()
-     .AddJsonOptions(options =>
-     {
-         options.JsonSerializerOptions.Converters.Add(
-             new JsonStringEnumConverter<BookingStatus>());
-     })
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new JsonStringEnumConverter<BookingStatus>());
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -42,40 +36,42 @@ builder.Services
             return new BadRequestObjectResult(problemDetails)
             {
                 ContentTypes =
-            {
-                "application/problem+json"
-            }
+                {
+                    "application/problem+json"
+                }
             };
         };
     });
 
-builder.Services.AddScoped<IEventRepository, EventRepository>();
-builder.Services.AddScoped<IBookingRepository, BookingRepository>();
-
-builder.Services.AddScoped<IEventService, EventService>();
-builder.Services.AddScoped<IBookingService, BookingService>();
-
+// Фоновая обработка бронирований
 builder.Services.AddHostedService<BookingProcessingService>();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+// OpenAPI
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Применение миграций при запуске
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var context = scope.ServiceProvider
         .GetRequiredService<AppDbContext>();
 
-
     await context.Database.MigrateAsync();
 }
+
+// Обработка исключений
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/openapi/v1.json", "PracticumEventManagement v1");
+        options.SwaggerEndpoint(
+            "/openapi/v1.json",
+            "PracticumEventManagement v1");
     });
 }
 

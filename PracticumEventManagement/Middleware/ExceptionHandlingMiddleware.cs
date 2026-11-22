@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PracticumEventManagement.Exceptions;
+using PracticumEventManagement.Domain.Exceptions;
 
 namespace PracticumEventManagement.Middleware;
 

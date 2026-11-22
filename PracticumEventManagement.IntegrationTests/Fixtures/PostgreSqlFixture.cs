@@ -1,6 +1,6 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
-using PracticumEventManagement.DataAccess;
+using PracticumEventManagement.Infrastructure.DataAccess;
 using Testcontainers.PostgreSql;
 using Xunit;
 

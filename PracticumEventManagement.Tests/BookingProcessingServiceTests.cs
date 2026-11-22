@@ -2,10 +2,11 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using PracticumEventManagement.BackgroundServices;
-using PracticumEventManagement.Dtos;
-using PracticumEventManagement.Models;
-using PracticumEventManagement.Services;
+using PracticumEventManagement.Application.Dtos;
+using PracticumEventManagement.Domain.Entities;
+using PracticumEventManagement.Application.Services;
 using PracticumEventManagement.Tests.Infrastructure;
+using PracticumEventManagement.Domain.Enums;
 
 namespace PracticumEventManagement.Tests;
 
