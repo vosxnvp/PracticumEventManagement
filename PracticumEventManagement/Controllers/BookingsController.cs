@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PracticumEventManagement.Dtos;
-using PracticumEventManagement.Services;
+using PracticumEventManagement.Application.Dtos;
+using PracticumEventManagement.Application.Services;
 
 namespace PracticumEventManagement.Controllers;
 

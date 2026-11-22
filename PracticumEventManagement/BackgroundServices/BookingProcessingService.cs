@@ -1,7 +1,9 @@
 ﻿
 using Microsoft.Extensions.DependencyInjection;
-using PracticumEventManagement.DataAccess.Repositories;
-using PracticumEventManagement.Models;
+using PracticumEventManagement.Infrastructure.DataAccess;
+using PracticumEventManagement.Domain.Entities;
+using PracticumEventManagement.Domain.Enums;
+using PracticumEventManagement.Application.Interfaces;
 
 namespace PracticumEventManagement.BackgroundServices;
 
